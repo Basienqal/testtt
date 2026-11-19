@@ -2,11 +2,10 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<title>System Zabezpieczenia Tras i Biegów Masowych v2.9</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Podgląd Zabezpieczenia Trasy (Live GPS)</title>
 
-<!-- Stylowanie Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<!-- Dodanie ikonek Font Awesome v6 -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
 
 <style>
@@ -29,6 +28,7 @@ body {
     box-sizing: border-box;
     z-index: 9999;
     box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
 }
 
 #map {
@@ -37,6 +37,24 @@ body {
     right: 0;
     top: 0;
     bottom: 0;
+    z-index: 1;
+}
+
+#toggle-view-btn {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 30px;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    cursor: pointer;
+    font-size: 14px;
 }
 
 .section-title {
@@ -50,124 +68,141 @@ body {
     padding-bottom: 3px;
 }
 
-.grid-buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5px;
-    margin-bottom: 10px;
-}
-
-.mode-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    padding: 8px 5px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 11px;
-    border: 1px solid #ccc;
-    background: #fdfdfd;
-    border-radius: 4px;
-    text-align: center;
-    transition: all 0.2s;
-}
-
-.mode-btn:hover {
-    background: #f0f0f0;
-}
-
-.mode-btn.active {
-    background: #343a40;
-    border-color: #343a40;
-    color: white;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
-}
-
-/* Graficzne ikony na mapie */
+/* Stylizacja markerów na mapie */
 .custom-marker-icon {
     display: flex !important;
-    align-items: center;
-    justify-content: center;
-    width: 26px !important;
-    height: 26px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 26px;
+    height: 26px;
     border: 2px solid #fff;
     border-radius: 50%;
     box-shadow: 0 2px 5px rgba(0,0,0,0.4);
-    background-color: #fff;
-    overflow: hidden;
-    color: white;
-    font-size: 11px;
+    color: white !important;
+    font-size: 12px;
     text-align: center;
-    cursor: grab;
-    transition: transform 0.1s;
+    overflow: hidden;
+    background-color: #fff;
 }
-.custom-marker-icon:active {
-    cursor: grabbing;
-    transform: scale(1.2);
-}
+
 .custom-marker-icon svg {
     width: 16px;
     height: 16px;
     display: block;
 }
 
-/* Mała odznaka typu w panelu i popupach */
-.type-badge {
-    display: inline-flex !important;
+.custom-marker-icon.icon-ochrona svg,
+.point-icon-badge.icon-ochrona svg,
+.custom-marker-icon.icon-ruchem svg,
+.point-icon-badge.icon-ruchem svg,
+.custom-marker-icon.icon-wolontariusz svg,
+.point-icon-badge.icon-wolontariusz svg {
     width: 20px !important;
     height: 20px !important;
-    margin-right: 5px;
-    vertical-align: middle;
-    cursor: default !important;
-    box-shadow: none;
-    flex-shrink: 0;
-}
-.type-badge:active { transform: none; }
-.type-badge svg { width: 12px; height: 12px; }
-
-.icon-wolontariusz { border: 2px solid #007bff !important; }
-.icon-lider        { border: 2px solid #dc3545 !important; }
-.icon-ochrona      { border: 2px solid #ffc107 !important; }
-.icon-ruchem       { border: 2px solid #e84824 !important; }
-.icon-medyczny     { background: #28a745; }
-.icon-ploty        { background: #343a40; border-color: #f8f9fa; }
-.icon-toaleta      { background: #6f42c1; }
-.icon-zywieniowy   { border: 2px solid #007bff !important; }
-.icon-sedzia       { background: #e0a800; }
-.icon-sluza        { border: 2px solid #8B0000 !important; }
-
-.btn-ctrl {
-    width: 100%;
-    padding: 8px;
-    font-weight: bold;
-    cursor: pointer;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    margin-bottom: 5px;
-    font-size: 12px;
 }
 
-.btn-main { background: #28a745; color: white; border: none; }
-.btn-danger { background: #dc3545; color: white; border: none; }
-.btn-secondary { background: #6c757d; color: white; border: none; }
+.custom-marker-icon.icon-lider {
+    overflow: visible !important;
+}
 
-.gpx-route-box {
-    background: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 10px;
+.custom-marker-icon.icon-lider svg {
+    width: 100% !important;
+    height: 33.3% !important;
 }
-.gpx-input-row {
-    margin-bottom: 8px;
-    font-size: 12px;
+
+.point-icon-badge.icon-lider svg {
+    width: 30px !important;
+    height: 12px !important;
 }
-.gpx-input-row label {
+
+.custom-marker-icon.icon-sluza {
+    overflow: visible !important;
+}
+
+.custom-marker-icon.icon-sluza svg {
+    width: 100% !important;
+    height: 50% !important;
+}
+
+.point-icon-badge.icon-sluza svg {
+    width: 40px !important;
+    height: 20px !important;
+}
+
+.custom-marker-icon.icon-ploty {
+    overflow: visible !important;
+}
+
+.custom-marker-icon.icon-ploty svg {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.point-icon-badge.icon-ploty svg {
+    width: 30px !important;
+    height: 11.52px !important;
+}
+
+.route-direction-arrow {
+    background: transparent;
+    border: 0;
+    pointer-events: none;
+}
+
+.point-icon-badge {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.point-icon-badge svg {
+    width: 16px !important;
+    height: 16px !important;
     display: block;
-    font-weight: bold;
-    margin-bottom: 2px;
 }
+
+.icon-wolontariusz { border: 0 !important; background: transparent !important; box-shadow: none !important; }
+.icon-lider        { border: 0 !important; border-radius: 0 !important; overflow: visible !important; background: transparent !important; box-shadow: none !important; }
+.icon-ochrona      { border: 0 !important; background: transparent !important; box-shadow: none !important; }
+.icon-ruchem       { border: 0 !important; background: transparent !important; box-shadow: none !important; }
+.icon-medyczny     { background: #28a745; }
+.icon-ploty        { background: transparent !important; border: 0 !important; border-radius: 0 !important; overflow: visible !important; box-shadow: none !important; }
+.icon-toaleta      { background: #6f42c1; }
+.icon-zywieniowy   { background: #ffffff; border: 2px solid #007bff !important; }
+.icon-sedzia       { background: #e0a800; }
+.icon-sluza,
+.point-icon-badge.icon-sluza {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Styl dla użytkowników z aktywnym GPS Live */
+.icon-live-user {
+    background: #e83e8c;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    color: white;
+    box-shadow: 0 0 10px rgba(232, 62, 140, 0.8);
+    animation: pulse-live 2s infinite;
+}
+
+@keyframes pulse-live {
+    0% { box-shadow: 0 0 0 0 rgba(232, 62, 140, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(232, 62, 140, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(232, 62, 140, 0); }
+}
+
+/* Tryb generowania atlasu: czysty kadr bez kontrolek i pozycji GPS */
+body.atlas-mode .leaflet-control-container,
+body.atlas-mode .leaflet-marker-pane,
+body.atlas-mode .leaflet-popup-pane,
+body.atlas-mode .icon-live-user { display: none !important; }
 
 .filter-item {
     display: flex;
@@ -175,10 +210,7 @@ body {
     font-size: 12px;
     margin-bottom: 4px;
 }
-
-.filter-item input {
-    margin-right: 6px;
-}
+.filter-item input { margin-right: 6px; }
 
 .stat-table {
     width: 100%;
@@ -186,246 +218,409 @@ body {
     border-collapse: collapse;
     margin-top: 5px;
 }
-
 .stat-table th, .stat-table td {
     border: 1px solid #eee;
-    padding: 4px;
+    padding: 6px;
     text-align: left;
 }
-
 .stat-table th { background: #f8f9fa; }
 
-.search-box {
+.search-box, .input-box {
     width: 100%;
     padding: 8px;
     box-sizing: border-box;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
-}
-
-.pointItem {
-    border: 1px solid #ddd;
-    margin-bottom: 6px;
-    padding: 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    background: #fff;
     font-size: 13px;
-    position: relative;
-    transition: background 0.2s;
 }
 
-.pointItem:hover { background: #f1f3f5; }
-
-.point-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 6px;
+.gps-box {
+    background: #eef9ff;
+    border: 1px solid #b8daff;
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 12px;
 }
 
-.point-meta {
-    margin-top: 4px;
-    font-size: 11px;
-    color: #555;
-}
-
-.action-btn {
-    border: none;
-    padding: 3px 6px;
-    cursor: pointer;
-    font-size: 10px;
-    border-radius: 3px;
-    margin-left: 3px;
-}
-
-.btn-edit { background: orange; color: white; }
-.btn-delete { background: red; color: white; }
-
-.coords {
-    font-family: monospace;
-    font-size: 10px;
-    color: #777;
-    margin-top: 3px;
-}
-
-.popup-form {
-    min-width: 220px;
-}
-
-.popup-form label {
-    font-size: 11px;
-    font-weight: bold;
-    display: block;
-    margin-top: 4px;
-}
-
-.popup-input, .popup-textarea {
+.point-list-table {
     width: 100%;
-    box-sizing: border-box;
-    margin-bottom: 3px;
+    border-collapse: collapse;
+    table-layout: fixed;
     font-size: 12px;
-    padding: 4px;
-    border: 1px solid #ccc;
-    border-radius: 3px;
 }
-
-.popup-row-3 {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 4px;
-}
-
-.popup-advanced {
-    margin-top: 6px;
-    padding-top: 6px;
-    border-top: 1px dashed #ddd;
-    background: #fafafa;
+.point-list-table th,
+.point-list-table td {
+    border: 1px solid #eee;
     padding: 5px;
-    border-radius: 3px;
+    text-align: left;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+}
+.point-list-table th { background: #f8f9fa; }
+.pointItem { cursor: pointer; background: #fff; transition: background 0.2s; }
+.pointItem:hover { background: #f1f3f5; }
+.point-name-cell { display: flex; align-items: center; }
+.point-notes-cell { white-space: pre-wrap; }
+
+@media print {
+    @page { size: landscape; margin: 12mm; }
+    body { background: #fff; }
+    #map,
+    .gps-box,
+    #routeLegendContainer,
+    #filterContainer,
+    #searchPointInput,
+    .stat-table,
+    #panel > .section-title:not(#point-list-title) {
+        display: none !important;
+    }
+    #panel {
+        position: static;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+        border: 0;
+        padding: 0;
+    }
+    #pointList {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    .point-list-table {
+        font-size: 10pt;
+        table-layout: auto;
+    }
+    .point-list-table th,
+    .point-list-table td {
+        border: 1px solid #888;
+        padding: 5px;
+    }
+    .pointItem { break-inside: avoid; }
+    .point-icon-badge { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 
-.popup-textarea { height: 48px; resize: vertical; }
-.popup-btn-container { margin-top: 8px; display: flex; gap: 4px; }
-.popup-btn { padding: 5px 8px; cursor: pointer; font-size: 12px; font-weight: bold; border-radius: 3px; border: 1px solid #ccc; }
+#loading-status {
+    background: #fff3cd;
+    color: #856404;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #ffeeba;
+}
+#loading-status.error {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
 
-.badge-sector {
-    background: #e9ecef;
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 10px;
+#live-sync-badge {
+    float: right;
+    font-size: 11px;
+    background: #e6f4ea;
+    color: #137333;
+    padding: 2px 6px;
+    border-radius: 10px;
     font-weight: bold;
+}
+#live-sync-badge.error { background: #f8d7da; color: #721c24; }
+#live-sync-badge.wait  { background: #eee; color: #555; }
+
+#gpsStatus { display:block; margin-top:6px; font-size:11px; color:#444; }
+#gpsStatus.error { color:#b02a37; font-weight:bold; }
+
+@media (max-width: 767px) {
+    #panel {
+        width: 100%;
+        top: auto;
+        bottom: 0;
+        height: 45vh;
+        border-right: none;
+        border-top: 2px solid #ccc;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+        z-index: 999;
+    }
+    #map {
+        left: 0;
+        width: 100%;
+        height: 55vh;
+    }
+    #toggle-view-btn { display: block; }
+    .panel-expanded #panel { height: 90vh; }
+    .panel-expanded #map { height: 10vh; }
 }
 </style>
 </head>
 
 <body>
 
+<button id="toggle-view-btn" onclick="toggleMobileView()"><i class="fa-solid fa-list"></i> Pokaż Listę</button>
+
 <div id="panel">
-    <h2 style="margin-top:0; margin-bottom:10px; font-size:20px; color:#333;">Zabezpieczenie Biegu</h2>
+    <span id="live-sync-badge" class="wait"><i class="fa-solid fa-rotate"></i> Dane: czekam...</span>
+    <h2 id="projectTitle" style="margin-top:0; margin-bottom:10px; font-size:18px; color:#333;">Ładowanie...</h2>
 
-    <div style="margin-bottom: 10px;">
-        <label style="font-size:12px; font-weight:bold;">Nazwa Projektu:</label>
-        <input type="text" id="projectNameInput" class="popup-input" value="Katowice Night 2027 2" style="font-weight:bold; font-size:13px;" oninput="updateProjectTitle()">
+    <div id="loading-status">Trwa pobieranie danych...</div>
+
+    <!-- MODUŁ UDOSTĘPNIANIA POZYCJI LIVE -->
+    <div class="gps-box">
+        <div style="font-weight:bold; font-size:12px; margin-bottom:5px; color:#004085;">
+            <i class="fa-solid fa-satellite-dish"></i> Śledzenie pozycji Live (RODO)
+        </div>
+        <input type="text" id="userGpsName" class="input-box" placeholder="Twój identyfikator (np. Patrol 1 / Jan)">
+        <button id="locate-btn" onclick="toggleGPS()" style="width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
+            <i class="fa-solid fa-crosshairs"></i> Udostępnij swoją pozycję
+        </button>
+        <span id="gpsStatus">Tryb lokalny: pozycja widoczna tylko na tym urządzeniu (brak serwera Live).</span>
+        <small style="display:block; margin-top:5px; font-size:10px; color:#666;">
+            Klikając przycisk wyrażasz zgodę na udostępnienie lokalizacji dla sztabu.
+        </small>
     </div>
 
-    <button class="btn-ctrl btn-danger" onclick="clearProject()">Nowy Projekt</button>
-    <div class="grid-buttons" style="margin-top: 5px;">
-        <button class="btn-ctrl btn-secondary" onclick="document.getElementById('jsonFileInput').click()">Import JSON</button>
-        <button class="btn-ctrl btn-secondary" style="background: #4b6584;" onclick="document.getElementById('xlsxFileInput').click()">Import XLSX</button>
-    </div>
-    <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="importJSON(event)">
-    <input type="file" id="xlsxFileInput" accept=".xlsx" style="display:none;" onchange="importExcel(event)">
-
-    <div class="section-title">Trasy Biegu (Wgrywanie / Rysowanie / Eksport)</div>
-    <div class="gpx-route-box">
-        <!-- TRASA 5K -->
-        <div class="gpx-input-row">
-            <label style="color: #6f42c1;"><i class="fa-solid fa-route"></i> Trasa 5K (Fioletowa):</label>
-            <div style="display:flex; gap:4px; margin-top:2px;">
-                <input type="file" id="gpxFile5K" accept=".gpx" style="font-size:10px; flex:1;" onchange="loadGpxRoute('5K', this)">
-                <button class="action-btn btn-main" style="background:#6f42c1; white-space:nowrap;" onclick="exportGPX('5K')" title="Pobierz tę trasę jako plik GPX"><i class="fa-solid fa-download"></i> GPX</button>
-            </div>
+    <!-- GENERATOR ATLASU OPERACYJNEGO -->
+    <div class="gps-box" style="background: #fff5f5; border-color: #f5c6cb;">
+        <div style="font-weight:bold; font-size:12px; margin-bottom:5px; color:#721c24;">
+            <i class="fa-solid fa-book-atlas"></i> Generator Atlasu
         </div>
-        <!-- TRASA 10K -->
-        <div class="gpx-input-row">
-            <label style="color: #b8860b;"><i class="fa-solid fa-route"></i> Trasa 10K (Żółta):</label>
-            <div style="display:flex; gap:4px; margin-top:2px;">
-                <input type="file" id="gpxFile10K" accept=".gpx" style="font-size:10px; flex:1;" onchange="loadGpxRoute('10K', this)">
-                <button class="action-btn btn-main" style="background:#ffc107; color:#000; white-space:nowrap;" onclick="exportGPX('10K')" title="Pobierz tę trasę jako plik GPX"><i class="fa-solid fa-download"></i> GPX</button>
-            </div>
-        </div>
-        <!-- TRASA SM -->
-        <div class="gpx-input-row">
-            <label style="color: #007bff;"><i class="fa-solid fa-route"></i> Trasa SM (Niebieska):</label>
-            <div style="display:flex; gap:4px; margin-top:2px;">
-                <input type="file" id="gpxFileSM" accept=".gpx" style="font-size:10px; flex:1;" onchange="loadGpxRoute('SM', this)">
-                <button class="action-btn btn-main" style="background:#007bff; white-space:nowrap;" onclick="exportGPX('SM')" title="Pobierz tę trasę jako plik GPX"><i class="fa-solid fa-download"></i> GPX</button>
-            </div>
-        </div>
-        <!-- TRASA HM -->
-        <div class="gpx-input-row">
-            <label style="color: #dc3545;"><i class="fa-solid fa-route"></i> Trasa HM (Czerwona):</label>
-            <div style="display:flex; gap:4px; margin-top:2px;">
-                <input type="file" id="gpxFileHM" accept=".gpx" style="font-size:10px; flex:1;" onchange="loadGpxRoute('HM', this)">
-                <button class="action-btn btn-main" style="background:#dc3545; white-space:nowrap;" onclick="exportGPX('HM')" title="Pobierz tę trasę jako plik GPX"><i class="fa-solid fa-download"></i> GPX</button>
-            </div>
-        </div>
-        <!-- TRASA UM -->
-        <div class="gpx-input-row">
-            <label style="color: #20c997;"><i class="fa-solid fa-route"></i> Trasa UM (Seledynowa):</label>
-            <div style="display:flex; gap:4px; margin-top:2px;">
-                <input type="file" id="gpxFileUM" accept=".gpx" style="font-size:10px; flex:1;" onchange="loadGpxRoute('UM', this)">
-                <button class="action-btn btn-main" style="background:#20c997; white-space:nowrap;" onclick="exportGPX('UM')" title="Pobierz tę trasę jako plik GPX"><i class="fa-solid fa-download"></i> GPX</button>
-            </div>
-        </div>
-
-        <hr style="border:0; border-top:1px solid #ddd; margin:8px 0;">
-
-        <!-- MODUŁ RĘCZNEGO RYSOWANIA TRASY -->
-        <label style="font-size:12px; font-weight:bold; color:#333;"><i class="fa-solid fa-pen-nib"></i> Ręczne rysowanie trasy:</label>
-        <div style="margin-top:4px; display:flex; gap:4px;">
-            <select id="drawRouteSelect" class="popup-input" style="margin-bottom:0; flex:1;" onchange="updateRouteDistanceUI()">
-                <option value="5K">Trasa 5K</option>
-                <option value="10K">Trasa 10K</option>
-                <option value="SM">Trasa SM</option>
-                <option value="HM">Trasa HM</option>
-                <option value="UM">Trasa UM</option>
-            </select>
-            <button id="toggleDrawBtn" class="btn-ctrl btn-main" style="width:auto; padding:4px 8px; margin-bottom:0;" onclick="toggleDrawRouteMode()">Rysuj</button>
-        </div>
-        <div id="drawInfoBox" style="display:none; margin-top:6px; font-size:11px; color:#555; background:#e9ecef; padding:6px; border-radius:3px;">
-            <i class="fa-solid fa-circle-info"></i> Klikaj na mapie, aby stawiać kolejne punkty trasy.<br>
-
-            <!-- LICZNIK ODLEGLOŚCI -->
-            <div id="drawDistanceText" style="margin-top:6px; font-size:12px; font-weight:bold; color:#007bff; background:#fff; padding:4px 6px; border-radius:3px; border:1px solid #ced4da;">
-                <i class="fa-solid fa-ruler-horizontal"></i> Długość trasy: 0 m
-            </div>
-
-            <div style="margin-top:6px; display:flex; gap:4px;">
-                <button class="action-btn btn-edit" onclick="undoLastRoutePoint()"><i class="fa-solid fa-rotate-left"></i> Cofnij punkt</button>
-                <button class="action-btn btn-delete" onclick="clearActiveRoute()"><i class="fa-solid fa-trash"></i> Wyczyść trasę</button>
-            </div>
-        </div>
+        <select id="atlasRouteSelect" class="search-box" style="margin-bottom: 5px;">
+            <option value="SM">Trasa SM</option>
+            <option value="5K">Trasa 5K</option>
+            <option value="10K">Trasa 10K</option>
+            <option value="HM">Trasa HM</option>
+            <option value="UM">Trasa UM</option>
+        </select>
+        <label for="atlasScaleInput" style="display:block; font-size:12px; margin:4px 0;">
+            Skala wydruku
+        </label>
+        <select id="atlasScaleInput" class="search-box" aria-label="Skala wydruku" style="margin-bottom:5px;">
+            <option value="2000" selected>1:2000</option>
+            <option value="1500">1:1500</option>
+            <option value="1000">1:1000</option>
+        </select>
+        <small style="display:block; font-size:10px; color:#666; margin-bottom:5px;">
+            Drukuj PDF w rzeczywistym rozmiarze (100%).
+        </small>
+        <button id="generateAtlasBtn" onclick="generateRouteAtlas()" style="width: 100%; padding: 10px; background: #e83e8c; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
+            <i class="fa-solid fa-file-pdf"></i> Pobierz Atlas Kilometrowy PDF
+        </button>
+        <button id="cancelAtlasBtn" onclick="cancelRouteAtlas()" style="display:none; width: 100%; padding: 8px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; margin-top: 5px;">
+            <i class="fa-solid fa-ban"></i> Przerwij generowanie
+        </button>
+        <div id="atlasProgress" style="font-size: 11px; color: #666; margin-top: 5px; text-align: center;"></div>
     </div>
 
-    <div class="section-title">Tryb dodawania punktów</div>
-    <div class="grid-buttons" id="modeButtons"></div>
+    <div class="section-title">Legenda i włącznik tras</div>
+    <div id="routeLegendContainer" style="font-size:12px; padding: 5px; background: #f8f9fa; border-radius: 4px; border: 1px solid #ddd;"></div>
 
-    <div class="section-title">Eksport Danych Projektu</div>
-    <div class="grid-buttons">
-        <button class="btn-ctrl btn-main" onclick="exportJSON()">Eksport JSON</button>
-        <button class="btn-ctrl btn-main" style="background:#1f7a3e;" onclick="exportExcel()">Eksport XLSX</button>
-    </div>
-
-    <div class="section-title">Filtrowanie warstw</div>
+    <div class="section-title">Filtrowanie punktów</div>
     <div id="filterContainer" style="max-height: 160px; overflow-y: auto; background:#f8f9fa; padding:5px; border-radius:4px; border:1px solid #ddd;"></div>
 
     <div class="section-title">Wyszukiwarka</div>
-    <input type="text" id="searchPointInput" class="search-box" placeholder="Szukaj numeru, adresu, sektora, uwag..." oninput="searchPoints()">
+    <input type="text" id="searchPointInput" class="search-box" placeholder="Szukaj numeru np. LID-002..." oninput="searchPoints()">
 
-    <div class="section-title">Statystyki Live</div>
+    <div class="section-title">Ustawienie taśmy i barierek</div>
+    <div class="gps-box">
+        <label for="rotationPointSelect" style="display:block; font-size:12px; margin-bottom:4px;">Wybierz punkt</label>
+        <select id="rotationPointSelect" class="search-box" style="margin-bottom:6px;">
+            <option value="">Wczytywanie punktów...</option>
+        </select>
+        <label for="rotationAngleInput" style="display:block; font-size:12px; margin-bottom:4px;">Kąt obrotu (stopnie)</label>
+        <input id="rotationAngleInput" class="input-box" type="number" min="-360" max="360" step="1" value="0" disabled>
+        <small style="display:block; font-size:10px; color:#666; margin-bottom:6px;">
+            0° oznacza poziomo; dodatni kąt obraca zgodnie z ruchem wskazówek zegara.
+        </small>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            <div>
+                <label for="rotationOffsetXInput" style="display:block; font-size:12px; margin-bottom:4px;">Przesunięcie poziome (px)</label>
+                <input id="rotationOffsetXInput" class="input-box" type="number" min="-200" max="200" step="1" value="0" disabled>
+            </div>
+            <div>
+                <label for="rotationOffsetYInput" style="display:block; font-size:12px; margin-bottom:4px;">Przesunięcie pionowe (px)</label>
+                <input id="rotationOffsetYInput" class="input-box" type="number" min="-200" max="200" step="1" value="0" disabled>
+            </div>
+        </div>
+        <small style="display:block; font-size:10px; color:#666; margin:0 0 6px;">
+            X dodatnie przesuwa w prawo, Y dodatnie w dół. Przesunięcie działa na mapie i w atlasie.
+        </small>
+        <button id="saveRotationBtn" type="button" disabled style="width:100%; padding:8px; background:#007bff; color:white; border:0; border-radius:4px; cursor:pointer; font-weight:bold;">
+            Zapisz kąt w tej przeglądarce
+        </button>
+        <button id="flipRotation180Btn" type="button" disabled style="width:100%; padding:7px; margin-top:5px; background:#495057; color:white; border:0; border-radius:4px; cursor:pointer; font-weight:bold;">
+            Obróć o 180° i zapisz
+        </button>
+        <button id="savePositionBtn" type="button" disabled style="width:100%; padding:8px; margin-top:5px; background:#17a2b8; color:white; border:0; border-radius:4px; cursor:pointer; font-weight:bold;">
+            Zapisz przesunięcie w tej przeglądarce
+        </button>
+        <button id="resetRotationBtn" type="button" disabled style="width:100%; padding:7px; margin-top:5px; background:#6c757d; color:white; border:0; border-radius:4px; cursor:pointer;">
+            Przywróć ustawienie domyślne
+        </button>
+        <button id="resetPositionBtn" type="button" disabled style="width:100%; padding:7px; margin-top:5px; background:#6c757d; color:white; border:0; border-radius:4px; cursor:pointer;">
+            Wyzeruj przesunięcie
+        </button>
+        <button id="autoAlignBarriersBtn" type="button" style="width:100%; padding:8px; margin-top:8px; background:#6f42c1; color:white; border:0; border-radius:4px; cursor:pointer; font-weight:bold;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-dopasuj kąty barierek i taśm
+        </button>
+        <label style="display:flex; align-items:center; gap:6px; font-size:11px; color:#555; margin-top:6px; cursor:pointer;">
+            <input type="checkbox" id="autoAlignOverwriteExisting">
+            Nadpisuj również punkty, które mają już ustawiony kąt
+        </label>
+        <div id="rotationStatus" role="status" style="font-size:11px; margin-top:6px; color:#555;"></div>
+    </div>
+
+    <div class="section-title">Eksport punktów</div>
+    <div class="gps-box">
+        <small style="display:block; font-size:10px; color:#666; margin-bottom:6px;">
+            Import zastępuje używany zestaw punktów tylko w tej przeglądarce. Eksport zawiera punkty, kąty i przesunięcia.
+        </small>
+        <label for="importPointsJsonInput" style="display:block; font-size:12px; margin-bottom:4px;">Importuj plik JSON</label>
+        <input id="importPointsJsonInput" class="input-box" type="file" accept=".json,application/json" style="font-size:11px;">
+        <button id="importPointsJsonBtn" type="button" style="width:100%; padding:8px; margin-bottom:8px; background:#0069d9; color:white; border:0; border-radius:4px; cursor:pointer; font-weight:bold;">
+            Wczytaj JSON
+        </button>
+        <button id="exportPointsJsonBtn" type="button" style="width:100%; padding:8px; background:#28a745; color:white; border:0; border-radius:4px; cursor:pointer; font-weight:bold;">
+            Pobierz zaktualizowany JSON
+        </button>
+        <button id="exportPointsXlsxBtn" type="button" style="width:100%; padding:8px; margin-top:5px; background:#217346; color:white; border:0; border-radius:4px; cursor:pointer; font-weight:bold;">
+            Pobierz XLSX
+        </button>
+        <div id="exportStatus" role="status" style="font-size:11px; margin-top:6px; color:#555;"></div>
+    </div>
+
+    <div class="section-title">Podsumowanie punktów (Wszystkie)</div>
     <table class="stat-table">
         <thead>
-            <tr><th>Typ</th><th>Ilość</th><th>Obsada (os.)</th></tr>
+            <tr><th>Nazwa punktu</th><th>Liczba</th></tr>
         </thead>
         <tbody id="statTableBody"></tbody>
     </table>
 
-    <div class="section-title">Lista Punktów (<span id="pointsCount">0</span>)</div>
-    <div id="pointList" style="max-height:300px; overflow-y:auto; margin-top:5px;"></div>
+    <div id="point-list-title" class="section-title">Lista punktów (<span id="pointsCount">0</span>)</div>
+    <div id="pointList" style="max-height:250px; overflow-y:auto; margin-top:5px;"></div>
 </div>
 
 <div id="map"></div>
 
-<!-- Biblioteki zewnętrzne Leaflet, toGeoJSON oraz SheetJS -->
+<!-- Skrypty zewnętrzne (przypięte wersje) -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
+<script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-// ---------- Ikony SVG ----------
+// Wersja lokalna: bez serwera Live. Gdy powstanie backend, wpisz tu jego adres (HTTPS).
+const BACKEND_URL = "";
+
+// ---------- Pomocnicze ----------
+function escapeHtml(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function removePolishDiacritics(str) {
+    if (!str) return '';
+    const map = {
+        'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
+        'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ł': 'L', 'Ń': 'N', 'Ó': 'O', 'Ś': 'S', 'Ź': 'Z', 'Ż': 'Z'
+    };
+    return str.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, match => map[match] || match);
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const timeNow = () => new Date().toLocaleTimeString('pl-PL');
+
+function setDataBadge(state, text) {
+    const b = document.getElementById("live-sync-badge");
+    b.className = state === 'ok' ? '' : state;
+    b.innerHTML = `<i class="fa-solid fa-rotate"></i> ${text}`;
+}
+
+function setLoadingStatus(msg, isError) {
+    const el = document.getElementById("loading-status");
+    if (!msg) { el.style.display = "none"; return; }
+    el.style.display = "block";
+    el.className = isError ? "error" : "";
+    el.innerText = msg;
+}
+
+function loadPointRotationOverrides() {
+    try {
+        const stored = localStorage.getItem(POINT_ROTATION_STORAGE_KEY);
+        const parsed = stored ? JSON.parse(stored) : {};
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            throw new Error("Nieprawidłowy format zapisanych kątów.");
+        }
+
+        pointRotationOverrides = {};
+        Object.entries(parsed).forEach(([id, angle]) => {
+            if (Number.isFinite(angle)) pointRotationOverrides[id] = angle;
+            else console.warn("Pominięto nieprawidłowy zapisany kąt dla punktu:", id, angle);
+        });
+        rotationStorageReady = true;
+        return true;
+    } catch (e) {
+        rotationStorageReady = false;
+        pointRotationOverrides = {};
+        console.error("Nie udało się odczytać lokalnych ustawień obrotu:", e);
+        setRotationStatus(`Nie udało się odczytać zapisanych kątów: ${e.message}`, true);
+        return false;
+    }
+}
+
+function loadPointPositionOverrides() {
+    try {
+        const stored = localStorage.getItem(POINT_POSITION_STORAGE_KEY);
+        const parsed = stored ? JSON.parse(stored) : {};
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            throw new Error("Nieprawidłowy format zapisanych przesunięć.");
+        }
+
+        pointPositionOverrides = {};
+        Object.entries(parsed).forEach(([id, offset]) => {
+            if (offset && Number.isFinite(offset.x) && Number.isFinite(offset.y) &&
+                Math.abs(offset.x) <= 200 && Math.abs(offset.y) <= 200) {
+                pointPositionOverrides[id] = { x: offset.x, y: offset.y };
+            } else {
+                console.warn("Pominięto nieprawidłowe przesunięcie dla punktu:", id, offset);
+            }
+        });
+        positionStorageReady = true;
+    } catch (e) {
+        positionStorageReady = false;
+        pointPositionOverrides = {};
+        console.error("Nie udało się odczytać lokalnych przesunięć punktów:", e);
+        setRotationStatus(`Nie udało się odczytać zapisanych przesunięć: ${e.message}`, true);
+    }
+}
+
+function setRotationStatus(message, isError = false) {
+    const status = document.getElementById("rotationStatus");
+    if (!status) return;
+    status.textContent = message;
+    status.style.color = isError ? "#b02a37" : "#555";
+}
+
+// Pętla odpytywania: bez nakładania się zapytań, wstrzymana gdy karta jest ukryta
+function startLoop(fn, ms) {
+    const run = async () => {
+        if (!document.hidden) {
+            try { await fn(); } catch (e) { console.error(e); }
+        }
+        setTimeout(run, ms);
+    };
+    setTimeout(run, ms);
+}
+
+// ---------- Ikony ----------
+let isAtlasCancelled = false;
+
+function cancelRouteAtlas() {
+    isAtlasCancelled = true;
+    document.getElementById("atlasProgress").innerText = "Przerywanie operacji...";
+}
+
+// Czyste SVG w pełni czytelne dla html2canvas
 const SVG_INFORMACYJNA_BLACK = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 119 168' width='16' height='16'><path d='M684.825,274.427C682.043,274.454 679.888,278.598 680.48,282.056C680.48,282.056 680.48,291.417 688.989,291.417C697.499,291.417 697.499,282.056 697.499,282.056C697.499,280.638 697.728,275.102 694.412,274.713M677.075,301.144L677.075,316.947L697.087,293.359C696.611,293.219 696.119,293.119 695.598,293.119L682.182,293.119C675.276,293.4 677.407,297.416 677.075,301.144ZM697.087,293.359L677.075,316.947L700.904,316.947L700.904,298.425C701.572,293.292 697.988,293.774 697.087,293.359ZM689.108,294.246C692.008,294.246 694.635,295.431 696.537,297.346C698.44,299.259 699.616,301.899 699.616,304.812C699.616,307.724 698.44,310.364 696.537,312.278C694.635,314.192 692.008,315.377 689.108,315.377C686.207,315.377 683.581,314.192 681.678,312.278C679.776,310.364 678.6,307.724 678.6,304.812C678.6,301.899 679.776,299.259 681.678,297.346C683.581,295.431 686.207,294.246 689.108,294.246ZM694.819,299.055C693.359,297.586 691.339,296.678 689.108,296.678C686.876,296.678 684.856,297.586 683.397,299.055C681.935,300.526 681.031,302.561 681.031,304.812C681.031,307.062 681.935,309.097 683.397,310.568C684.856,312.037 686.876,312.945 689.108,312.945C691.339,312.945 693.359,312.037 694.819,310.568C696.28,309.097 697.184,307.062 697.184,304.812C697.184,302.561 696.28,300.526 694.819,299.055ZM687.604,299.4L690.612,299.4L690.612,301.441L687.604,301.441L687.604,299.4ZM687.604,302.378L690.612,302.378L690.612,310.223L687.604,310.223L687.604,302.378Z' fill='#000000' transform='matrix(3.51264,0,0,3.92445,-2361.91,-1077.12)'/></svg>`;
 const SVG_RUCHEM_ORANGE = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 119 168' width='16' height='16'><path d='M642.638,109.482L658.992,109.482C656.224,108.391 653.665,106.211 650.69,106.211C647.793,106.211 645.322,108.391 642.638,109.482ZM642.638,111.117L642.638,115.205C642.638,115.205 642.638,124.2 650.815,124.2C658.992,124.2 658.992,115.205 658.992,115.205L658.992,111.117L642.638,111.117ZM629.504,115.978C627.7,116.006 626.26,117.49 626.284,119.294L626.284,132.377C626.284,134.47 628.221,136.024 630.265,135.571L639.368,133.546L639.368,147.137C641.899,143.92 655.945,125.835 655.665,125.835L644.274,125.835L632.826,128.301L632.826,119.294C632.851,117.45 631.348,115.949 629.504,115.978ZM659.775,126.333L642.462,148.731L662.263,148.731L662.263,130.933C662.905,126.001 660.641,126.733 659.775,126.333' fill='#e84824' transform='matrix(3.57579,0,0,3.995,-2244.93,-425.452)'/></svg>`;
 const SVG_PORZADKOWA = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 119 168' width='16' height='16'><g transform='matrix(3.53411,0,0,3.90062,-1655.02,-315.577)'><g transform='matrix(1,0,0,1,0,-390.34)'><path d='M485.478,471.54C477.903,471.424 475.748,475.568 476.339,479.026C476.339,479.026 476.339,488.386 484.849,488.386C493.359,488.386 493.359,479.026 493.359,479.026C493.359,477.607 493.588,472.072 485.478,471.54ZM492.577,490.021L478.041,490.088C471.136,490.369 473.267,494.385 472.936,498.113L472.898,513.916L496.763,513.916L496.763,495.394C497.432,490.261 494.598,490.368 492.577,490.021Z' fill='#ffc107' stroke='#0d070c' stroke-width='1.12px'/></g><g transform='matrix(1,0,0,1,0,-351.934)'><rect x='472.908' y='471.424' width='23.855' height='4.086' fill='#0d070c' stroke='#1c1917' stroke-width='0.63px'/></g><g transform='matrix(1,0,0,1,0,-375.78)'><rect x='484.001' y='475.501' width='2.251' height='19.779' fill='#0d070c' stroke='#1c1917' stroke-width='0.63px'/></g><text x='488.821px' y='108.702px' style="font-family:'Arial-Black', 'Arial', sans-serif;font-weight:900;font-size:9.713px;" fill='#1c1917'>S</text><g transform='matrix(1,0,0,1,0,-375.78)'><path d='M472.908,495.27L484.077,495.279L484.001,475.501' fill='none' stroke='#1c1917' stroke-width='0.63px'/></g><g transform='matrix(1,0,0,1,0,-375.79)'><path d='M496.679,495.27L486.252,495.289L486.177,475.501' fill='none' stroke='#1c1917' stroke-width='0.63px'/></g></g></svg>`;
@@ -439,124 +634,359 @@ const SVG_SEDZIA = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' 
 const SVG_LIVE_USER = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='16' height='16' fill='#ffffff'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg>`;
 
 const CONFIG_TYPES = {
-    "Służba informacyjna":      { prefix: "INF",  className: "icon-wolontariusz", svgContent: SVG_INFORMACYJNA_BLACK, color: "#007bff" },
-    "Taśma":                    { prefix: "TAS",  className: "icon-lider",        svgContent: SVG_TASMA,              color: "#dc3545" },
-    "Służba porządkowa":        { prefix: "POR",  className: "icon-ochrona",      svgContent: SVG_PORZADKOWA,         color: "#ffc107" },
-    "Służba kierowania ruchem": { prefix: "RUCH", className: "icon-ruchem",       svgContent: SVG_RUCHEM_ORANGE,      color: "#e84824" },
-    "Medyczny":                 { prefix: "MED",  className: "icon-medyczny",     svgContent: SVG_MEDYCZNY,           color: "#28a745" },
-    "Barierki":                 { prefix: "BAR",  className: "icon-ploty",        svgContent: SVG_BADIERKI,           color: "#343a40" },
-    "Toaleta":                  { prefix: "TOAL", className: "icon-toaleta",      svgContent: SVG_TOALETA,            color: "#6f42c1" },
-    "Punkt żywieniowy":         { prefix: "ZYW",  className: "icon-zywieniowy",   svgContent: SVG_ZYWIENIOWY,         color: "#007bff" },
-    "Sędzia":                   { prefix: "SED",  className: "icon-sedzia",       svgContent: SVG_SEDZIA,             color: "#e0a800" },
-    "Śluza":                    { prefix: "SLU",  className: "icon-sluza",        svgContent: SVG_SLUZA,              color: "#8B0000" }
+    "Służba informacyjna":      { className: "icon-wolontariusz", svgContent: SVG_INFORMACYJNA_BLACK, color: "#007bff" },
+    "Taśma":                    { className: "icon-lider",        svgContent: SVG_TASMA,               color: "#dc3545" },
+    "Służba porządkowa":        { className: "icon-ochrona",      svgContent: SVG_PORZADKOWA,          color: "#ffc107" },
+    "Służba kierowania ruchem": { className: "icon-ruchem",       svgContent: SVG_RUCHEM_ORANGE,       color: "#e84824" },
+    "Medyczny":                 { className: "icon-medyczny",     svgContent: SVG_MEDYCZNY,            color: "#28a745" },
+    "Barierki":                 { className: "icon-ploty",        svgContent: SVG_BADIERKI,            color: "#343a40" },
+    "Toaleta":                  { className: "icon-toaleta",      svgContent: SVG_TOALETA,             color: "#6f42c1" },
+    "Punkt żywieniowy":         { className: "icon-zywieniowy",   svgContent: SVG_ZYWIENIOWY,          color: "#007bff" },
+    "Sędzia":                   { className: "icon-sedzia",       svgContent: SVG_SEDZIA,              color: "#e0a800" },
+    "Śluza":                    { className: "icon-sluza",        svgContent: SVG_SLUZA,               color: "#8B0000" }
 };
 
 const CONFIG_ROUTES = {
-    "5K":  { color: "#6f42c1", weight: 5, layer: null },
-    "10K": { color: "#ffc107", weight: 5, layer: null },
-    "SM":  { color: "#007bff", weight: 5, layer: null },
-    "HM":  { color: "#dc3545", weight: 5, layer: null },
-    "UM":  { color: "#20c997", weight: 5, layer: null }
+    "5K":  { file: "trasa_5K.gpx",  color: "#6f42c1", layer: null, arrowLayer: null },
+    "10K": { file: "trasa_10K.gpx", color: "#ffc107", layer: null, arrowLayer: null },
+    "SM":  { file: "trasa_sm.gpx",  color: "#007bff", layer: null, arrowLayer: null },
+    "HM":  { file: "trasa_hm.gpx",  color: "#dc3545", layer: null, arrowLayer: null },
+    "UM":  { file: "trasa_um.gpx",  color: "#20c997", layer: null, arrowLayer: null }
 };
+const routeSegments = [];
+const routeSegmentsByKey = new Map();
+const POINT_ROTATION_STORAGE_KEY = "map-point-rotation-overrides-v1";
+const POINT_POSITION_STORAGE_KEY = "map-point-position-overrides-v1";
+const IMPORTED_POINTS_DOCUMENT_STORAGE_KEY = "map-imported-points-document-v1";
+const LINEAR_ICON_REFERENCE_ZOOM = 17.5;
+let pointRotationOverrides = {};
+let pointPositionOverrides = {};
+let rotationStorageReady = false;
+let positionStorageReady = false;
+let latestPointsDocument = null;
 
-function normalizeType(typ) {
-    if (typ === "Wolontariusz") return "Służba informacyjna";
-    if (typ === "Ochrona") return "Służba porządkowa";
-    if (typ === "Kierowanie ruchem" || typ === "Policja") return "Służba kierowania ruchem";
-    if (typ === "Płoty") return "Barierki";
-    if (typ === "Lider" || typ === "Koordynator" || typ === "Punkt kibicowania") return "Taśma";
-    return CONFIG_TYPES[typ] ? typ : "Służba informacyjna";
-}
+// ---------- Mapa ----------
+// zoomSnap: 0 pozwala na ułamkowy zoom, niezbędny dla dokładnej skali 1:2000 w atlasie
+const map = L.map('map', { zoomSnap: 0, zoomDelta: 0.5, tap: false, zoomAnimation: false, fadeAnimation: false })
+    .setView([50.2649, 19.0238], 13);
 
-function normalizeSector(sektor) {
-    if (!sektor) return "";
-    const cleaned = String(sektor).trim();
-    const match = cleaned.match(/^(?:o\w*c\w*n\w*k|odc\w*|odci\w*)\s*(\d+)$/i);
-    if (match) {
-        return `Odcinek ${match[1]}`;
-    }
-    return cleaned;
-}
+map.createPane("routeArrowPane");
+map.getPane("routeArrowPane").style.zIndex = 550;
+map.getPane("routeArrowPane").style.pointerEvents = "none";
 
-function iconHtml(type) {
-    const c = CONFIG_TYPES[type];
-    return c && c.svgContent ? c.svgContent : '<i class="fa-solid fa-location-dot"></i>';
-}
+const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    crossOrigin: true,
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
 
-function badgeHtml(type) {
-    const c = CONFIG_TYPES[type];
-    return `<span class="custom-marker-icon type-badge ${c ? c.className : ''}">${iconHtml(type)}</span>`;
-}
+L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
 
-const map = L.map('map').setView([50.2520, 19.0550], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+const routeCanvasRenderer = L.canvas({ padding: 0.5 });
 
+const legendContainer = document.getElementById("routeLegendContainer");
 Object.keys(CONFIG_ROUTES).forEach(key => {
+    CONFIG_ROUTES[key].arrowLayer = L.layerGroup().addTo(map);
     CONFIG_ROUTES[key].layer = L.geoJSON(null, {
+        renderer: routeCanvasRenderer,
+        // pomijamy waypointy z GPX (inaczej pojawiłyby się domyślne markery)
         filter: f => f.geometry && f.geometry.type !== 'Point',
-        style: { color: CONFIG_ROUTES[key].color, weight: CONFIG_ROUTES[key].weight }
+        style: { color: CONFIG_ROUTES[key].color, weight: 5 }
     }).addTo(map);
+
+    if (legendContainer) {
+        const div = document.createElement("div");
+        div.className = "filter-item";
+        div.innerHTML = `
+            <input type="checkbox" id="route_chk_${key}" checked onchange="toggleRouteLayer('${key}', this.checked)">
+            <label for="route_chk_${key}" style="cursor:pointer; font-weight:bold; color:${CONFIG_ROUTES[key].color};">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="12" viewBox="0 0 18 12" aria-hidden="true" style="vertical-align:middle; margin-right:3px;"><line x1="1" y1="6" x2="17" y2="6" stroke="${CONFIG_ROUTES[key].color}" stroke-width="4" stroke-linecap="round"/></svg> Trasa ${key}
+            </label>
+        `;
+        legendContainer.appendChild(div);
+    }
 });
 
-let currentMode = null;
-let points = [];
-let projectName = "Katowice Night 2027 2";
-let activeFilters = {};
-
-// Stan dla ręcznego rysowania tras
-let isDrawingRoute = false;
-let routeLatLngs = { "5K": [], "10K": [], "SM": [], "HM": [], "UM": [] };
-
-function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-function generateUUID() {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        return crypto.randomUUID();
+function toggleRouteLayer(key, isVisible) {
+    const layer = CONFIG_ROUTES[key].layer;
+    const arrowLayer = CONFIG_ROUTES[key].arrowLayer;
+    if (isVisible) {
+        if (!map.hasLayer(layer)) layer.addTo(map);
+        if (!map.hasLayer(arrowLayer)) arrowLayer.addTo(map);
+    } else {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+        if (map.hasLayer(arrowLayer)) map.removeLayer(arrowLayer);
     }
-    return 'id-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36);
 }
 
-function updateProjectTitle() {
-    projectName = document.getElementById("projectNameInput").value;
-}
+function refreshRouteArrows() {
+    const zoom = map.getZoom();
+    const spacing = 140;
+    Object.keys(CONFIG_ROUTES).forEach(key => {
+        const route = CONFIG_ROUTES[key];
+        if (!route.arrowLayer) return;
+        route.arrowLayer.clearLayers();
+        collectSegments(route.layer).forEach(segment => {
+            let distanceToNextArrow = spacing;
+            for (let i = 1; i < segment.length; i++) {
+                const [lng1, lat1] = segment[i - 1];
+                const [lng2, lat2] = segment[i];
+                const start = map.project([lat1, lng1], zoom);
+                const end = map.project([lat2, lng2], zoom);
+                const dx = end.x - start.x, dy = end.y - start.y;
+                const length = Math.hypot(dx, dy);
+                if (!length) continue;
 
-function initModeButtons() {
-    const box = document.getElementById("modeButtons");
-    box.innerHTML = "";
-    Object.keys(CONFIG_TYPES).forEach(t => {
-        const b = document.createElement("button");
-        b.className = "mode-btn";
-        b.dataset.mode = t;
-        b.innerHTML = `${badgeHtml(t)}<span>${escapeHtml(t)}</span>`;
-        b.onclick = () => setMode(t);
-        box.appendChild(b);
+                let traversed = 0;
+                while (traversed + distanceToNextArrow <= length) {
+                    traversed += distanceToNextArrow;
+                    const x = start.x + dx * traversed / length;
+                    const y = start.y + dy * traversed / length;
+                    const latLng = map.unproject([x, y], zoom);
+                    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                    const icon = L.divIcon({
+                        className: "route-direction-arrow",
+                        html: `<svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 18 18" style="transform:rotate(${angle}deg);"><path d="M2 3 L16 9 L2 15 L5.5 9 Z" fill="${route.color}"/></svg>`,
+                        iconSize: [27, 27],
+                        iconAnchor: [13.5, 13.5]
+                    });
+                    route.arrowLayer.addLayer(L.marker(latLng, {
+                        icon,
+                        pane: "routeArrowPane",
+                        interactive: false,
+                        keyboard: false,
+                        zIndexOffset: 0
+                    }));
+                    distanceToNextArrow = spacing;
+                }
+                distanceToNextArrow -= length - traversed;
+            }
+        });
     });
 }
-initModeButtons();
+
+function getLinearIconScale() {
+    const zoom = map ? map.getZoom() : LINEAR_ICON_REFERENCE_ZOOM;
+    const rawScale = Math.pow(2, zoom - LINEAR_ICON_REFERENCE_ZOOM);
+    return Math.max(0.35, Math.min(2.2, rawScale));
+}
+
+function refreshLinearIconsOnZoom() {
+    pointsMap.forEach(point => {
+        if (point.typ === "Barierki" || point.typ === "Taśma" || point.typ === "Śluza") {
+            point.marker.setIcon(buildIcon(point));
+        }
+    });
+}
+
+map.on("zoomend", () => {
+    refreshRouteArrows();
+    refreshLinearIconsOnZoom();
+});
+
+// Każdy typ punktu ma własną grupę warstw (filtrowanie = dodanie/usunięcie grupy)
+const typeGroups = {};
+Object.keys(CONFIG_TYPES).forEach(t => { typeGroups[t] = L.layerGroup(); });
+
+let pointsMap = new Map();
+let activeFilters = {};
+let isFirstLoad = true;
+
+function getIconHtml(cfg) {
+    if (cfg.svgContent) return cfg.svgContent;
+    return `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='16' height='16' fill='#ffffff'><circle cx='12' cy='12' r='10'/></svg>`;
+}
+
+function getIconBadgeHtml(cfg, size = 20) {
+    const largeIconTypes = ["icon-lider", "icon-ochrona", "icon-ruchem", "icon-wolontariusz", "icon-sluza"];
+    const iconWidth = cfg.className === "icon-sluza" ? 44 : cfg.className === "icon-lider" ? 32.4 : cfg.className === "icon-ploty" ? 32.4 : largeIconTypes.includes(cfg.className) ? 24 : size;
+    const iconHeight = cfg.className === "icon-sluza" ? 24 : cfg.className === "icon-lider" ? 16.8 : cfg.className === "icon-ploty" ? 13.44 : iconWidth;
+    return `<span class="point-icon-badge ${cfg.className}" style="width:${iconWidth}px;height:${iconHeight}px;margin-right:6px;">${getIconHtml(cfg)}</span>`;
+}
+
+// ---------- GPS ----------
+let watchId = null;
+let liveUsersMarkers = new Map();
+let myMarker = null;
+let lastGpsSent = 0;
+const GPS_SEND_INTERVAL_MS = 5000;
+const LIVE_STALE_MS = 120000;
+
+function setGpsStatus(msg, isError) {
+    const el = document.getElementById("gpsStatus");
+    el.innerText = msg;
+    el.className = isError ? "error" : "";
+}
+
+function resetGpsButton() {
+    const btn = document.getElementById("locate-btn");
+    btn.innerHTML = `<i class="fa-solid fa-crosshairs"></i> Udostępnij swoją pozycję`;
+    btn.style.background = "#28a745";
+    document.getElementById("userGpsName").disabled = false;
+}
+
+function stopGPS() {
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+    resetGpsButton();
+    if (myMarker) { map.removeLayer(myMarker); myMarker = null; }
+}
+
+function toggleGPS() {
+    const btn = document.getElementById("locate-btn");
+    const nameInput = document.getElementById("userGpsName");
+
+    if (watchId !== null) {
+        stopGPS();
+        setGpsStatus(BACKEND_URL ? "Udostępnianie wyłączone." : "Tryb lokalny: pozycja widoczna tylko na tym urządzeniu (brak serwera Live).");
+        return;
+    }
+
+    if (!navigator.geolocation) {
+        setGpsStatus("To urządzenie nie obsługuje geolokalizacji.", true);
+        return;
+    }
+    if (!window.isSecureContext) {
+        setGpsStatus("GPS działa tylko przez HTTPS lub localhost. Otwórz stronę jako http://localhost:... albo przez HTTPS.", true);
+        return;
+    }
+
+    let userId = nameInput.value.trim();
+    if (!userId) {
+        userId = "Patrol (Brak ID)";
+        nameInput.value = userId;
+    }
+
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Pobieranie GPS...`;
+    nameInput.disabled = true;
+    setGpsStatus("Szukam sygnału GPS...");
+
+    watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+            const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+
+            btn.innerHTML = `<i class="fa-solid fa-location-dot"></i> Wyłącz udostępnianie`;
+            btn.style.background = "#dc3545";
+
+            if (!myMarker) {
+                const icon = L.divIcon({
+                    className: 'custom-marker-icon icon-live-user',
+                    html: SVG_LIVE_USER, iconSize: [26, 26], iconAnchor: [13, 13]
+                });
+                myMarker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
+                myMarker.bindPopup(`<b>${escapeHtml(userId)}</b><br>Twoja pozycja`);
+            } else {
+                myMarker.setLatLng([lat, lng]);
+            }
+
+            if (BACKEND_URL) {
+                setGpsStatus(`Pozycja wysyłana do sztabu (dokładność ±${Math.round(accuracy)} m).`);
+                const now = Date.now();
+                if (now - lastGpsSent >= GPS_SEND_INTERVAL_MS) {
+                    lastGpsSent = now;
+                    sendGpsToServer(userId, lat, lng, accuracy);
+                }
+            } else {
+                setGpsStatus(`Tryb lokalny: pozycja tylko na tym urządzeniu (±${Math.round(accuracy)} m). Sztab jej nie widzi.`);
+            }
+        },
+        (err) => {
+            if (err.code === 1) {
+                stopGPS();
+                setGpsStatus("Brak zgody na lokalizację. Zezwól na dostęp w ustawieniach przeglądarki.", true);
+            } else {
+                setGpsStatus("Chwilowy brak sygnału GPS, próbuję dalej...", true);
+            }
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+    );
+}
+
+async function sendGpsToServer(userId, lat, lng, accuracy) {
+    if (!BACKEND_URL) return;
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/gps-update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, lat, lng, accuracy })
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+    } catch (e) {
+        console.error("Błąd wysyłania pozycji na serwer", e);
+        setGpsStatus("Nie udało się wysłać pozycji do serwera.", true);
+    }
+}
+
+async function fetchLiveGpsUsers() {
+    if (!BACKEND_URL) return;
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/gps-locations`);
+        if (!res.ok) return;
+        const users = await res.json();
+        const activeUserIds = new Set();
+        const now = Date.now();
+
+        users.forEach(u => {
+            const lat = Number(u.lat), lng = Number(u.lng);
+            if (!u.userId || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+            if (u.ts && now - Number(u.ts) > LIVE_STALE_MS) return;
+            activeUserIds.add(u.userId);
+
+            if (liveUsersMarkers.has(u.userId)) {
+                liveUsersMarkers.get(u.userId).setLatLng([lat, lng]);
+            } else {
+                const customIcon = L.divIcon({
+                    className: 'custom-marker-icon icon-live-user',
+                    html: SVG_LIVE_USER, iconSize: [26, 26], iconAnchor: [13, 13]
+                });
+                const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+                marker.bindPopup(`<b><i class="fa-solid fa-satellite"></i> ${escapeHtml(String(u.userId))}</b><br>Aktywny Patrol (GPS Live)`);
+                liveUsersMarkers.set(u.userId, marker);
+            }
+        });
+
+        liveUsersMarkers.forEach((marker, id) => {
+            if (!activeUserIds.has(id)) {
+                map.removeLayer(marker);
+                liveUsersMarkers.delete(id);
+            }
+        });
+    } catch (e) {
+        console.warn("Brak połączenia z serwerem Live", e);
+    }
+}
+
+// ---------- UI ----------
+function toggleMobileView() {
+    const body = document.body;
+    const btn = document.getElementById("toggle-view-btn");
+    if (body.classList.contains("panel-expanded")) {
+        body.classList.remove("panel-expanded");
+        btn.innerHTML = `<i class="fa-solid fa-list"></i> Pokaż Listę`;
+    } else {
+        body.classList.add("panel-expanded");
+        btn.innerHTML = `<i class="fa-solid fa-map"></i> Pokaż Mapę`;
+    }
+    setTimeout(() => { map.invalidateSize(); }, 320);
+}
 
 function initFilters() {
     const container = document.getElementById("filterContainer");
     container.innerHTML = "";
     Object.keys(CONFIG_TYPES).forEach(type => {
         activeFilters[type] = true;
+        typeGroups[type].addTo(map);
+        const cfg = CONFIG_TYPES[type];
+
         const div = document.createElement("div");
         div.className = "filter-item";
-        const cbId = `filter_${type.replace(/\s+/g, '_')}`;
         div.innerHTML = `
-            <input type="checkbox" id="${escapeHtml(cbId)}" checked>
-            ${badgeHtml(type)}
-            <label for="${escapeHtml(cbId)}" style="cursor:pointer; font-weight:bold;">${escapeHtml(type)}</label>
+            <input type="checkbox" id="filter_${type}" checked onchange="toggleFilter('${type}', this.checked)">
+            ${getIconBadgeHtml(cfg)}
+            <label for="filter_${type}" style="cursor:pointer; font-weight:bold;">${type}</label>
         `;
-        const checkbox = div.querySelector('input[type="checkbox"]');
-        checkbox.addEventListener('change', e => toggleFilter(type, e.target.checked));
         container.appendChild(div);
     });
 }
@@ -564,846 +994,1862 @@ initFilters();
 
 function toggleFilter(type, isVisible) {
     activeFilters[type] = isVisible;
-    points.forEach(p => {
-        if (p.typ === type) {
-            if (isVisible) {
-                if (!map.hasLayer(p.marker)) p.marker.addTo(map);
-            } else {
-                if (map.hasLayer(p.marker)) map.removeLayer(p.marker);
-            }
-        }
-    });
+    if (isVisible) { if (!map.hasLayer(typeGroups[type])) typeGroups[type].addTo(map); }
+    else { if (map.hasLayer(typeGroups[type])) map.removeLayer(typeGroups[type]); }
     refreshList();
     updateStats();
 }
 
-function setMode(mode) {
-    if (isDrawingRoute) toggleDrawRouteMode();
-    if (currentMode === mode) {
-        currentMode = null;
-        document.querySelectorAll(".mode-btn").forEach(btn => btn.classList.remove("active"));
-        map.getContainer().style.cursor = "";
-        return;
-    }
-    currentMode = mode;
-    document.querySelectorAll(".mode-btn").forEach(btn => btn.classList.remove("active"));
-    const activeBtn = document.querySelector(`.mode-btn[data-mode="${CSS.escape(mode)}"]`);
-    if (activeBtn) activeBtn.classList.add("active");
-    map.getContainer().style.cursor = "crosshair";
+// ---------- Ładowanie danych ----------
+async function loadGpxRoutes() {
+    routeSegments.length = 0;
+    routeSegmentsByKey.clear();
+    await Promise.all(Object.keys(CONFIG_ROUTES).map(async key => {
+        try {
+            const response = await fetch(CONFIG_ROUTES[key].file, { cache: 'no-cache' });
+            if (!response.ok) throw new Error("HTTP " + response.status);
+            const gpxText = await response.text();
+            const gpxXml = new DOMParser().parseFromString(gpxText, "text/xml");
+            const geojson = toGeoJSON.gpx(gpxXml);
+            collectRouteSegments(geojson, key);
+            CONFIG_ROUTES[key].layer.clearLayers();
+            CONFIG_ROUTES[key].layer.addData(geojson);
+            refreshRouteArrows();
+        } catch (e) {
+            console.warn(`Nie wczytano trasy ${key} (${CONFIG_ROUTES[key].file}):`, e.message);
+        }
+    }));
 }
 
-/* OBLICZANIE ODLEGLOŚCI TRASY */
-function calculateRouteDistance(key) {
-    let totalMeters = 0;
-
-    if (routeLatLngs[key] && routeLatLngs[key].length > 1) {
-        for (let i = 1; i < routeLatLngs[key].length; i++) {
-            const p1 = L.latLng(routeLatLngs[key][i-1][0], routeLatLngs[key][i-1][1]);
-            const p2 = L.latLng(routeLatLngs[key][i][0], routeLatLngs[key][i][1]);
-            totalMeters += p1.distanceTo(p2);
+function collectRouteSegments(geojson, routeKey) {
+    const segments = [];
+    const collectGeometry = geometry => {
+        if (!geometry) return;
+        if (geometry.type === "GeometryCollection") {
+            geometry.geometries.forEach(collectGeometry);
+            return;
         }
-        return totalMeters;
-    }
 
-    const geojson = CONFIG_ROUTES[key].layer.toGeoJSON();
-    if (geojson && geojson.features) {
-        geojson.features.forEach(feature => {
-            let coords = [];
-            if (feature.geometry && feature.geometry.type === "LineString") {
-                coords = feature.geometry.coordinates;
-            } else if (feature.geometry && feature.geometry.type === "MultiLineString") {
-                feature.geometry.coordinates.forEach(line => coords = coords.concat(line));
-            }
-            for (let i = 1; i < coords.length; i++) {
-                const p1 = L.latLng(coords[i-1][1], coords[i-1][0]);
-                const p2 = L.latLng(coords[i][1], coords[i][0]);
-                totalMeters += p1.distanceTo(p2);
+        const lines = geometry.type === "LineString"
+            ? [geometry.coordinates]
+            : geometry.type === "MultiLineString" ? geometry.coordinates : [];
+        lines.forEach(line => {
+            for (let i = 1; i < line.length; i++) {
+                const start = line[i - 1], end = line[i];
+                if (Number.isFinite(start[0]) && Number.isFinite(start[1]) &&
+                    Number.isFinite(end[0]) && Number.isFinite(end[1])) {
+                    segments.push({
+                        start: mercNorm(start[1], start[0]),
+                        end: mercNorm(end[1], end[0])
+                    });
+                }
             }
         });
-    }
-
-    return totalMeters;
-}
-
-function formatDistanceText(meters) {
-    if (meters >= 1000) {
-        return (meters / 1000).toFixed(2) + " km";
-    }
-    return Math.round(meters) + " m";
-}
-
-function updateRouteDistanceUI() {
-    const key = document.getElementById("drawRouteSelect").value;
-    const distMeters = calculateRouteDistance(key);
-    const textElem = document.getElementById("drawDistanceText");
-    const routeCfg = CONFIG_ROUTES[key];
-
-    if (textElem) {
-        textElem.innerHTML = `<i class="fa-solid fa-ruler-horizontal" style="color:${routeCfg.color};"></i> Długość trasy (${escapeHtml(key)}): <b>${formatDistanceText(distMeters)}</b>`;
-    }
-}
-
-/* FUNKCJE RĘCZNEGO RYSOWANIA TRASY */
-function toggleDrawRouteMode() {
-    isDrawingRoute = !isDrawingRoute;
-    const btn = document.getElementById("toggleDrawBtn");
-    const infoBox = document.getElementById("drawInfoBox");
-
-    if (isDrawingRoute) {
-        currentMode = null;
-        document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
-        btn.innerText = "Zakończ";
-        btn.style.background = "#dc3545";
-        infoBox.style.display = "block";
-        map.getContainer().style.cursor = "crosshair";
-        updateRouteDistanceUI();
-    } else {
-        btn.innerText = "Rysuj";
-        btn.style.background = "#28a745";
-        infoBox.style.display = "none";
-        map.getContainer().style.cursor = "";
-    }
-}
-
-function updateRouteLayer(key) {
-    const routeCfg = CONFIG_ROUTES[key];
-    routeCfg.layer.clearLayers();
-
-    if (routeLatLngs[key] && routeLatLngs[key].length > 0) {
-        const polyline = L.polyline(routeLatLngs[key], {
-            color: routeCfg.color,
-            weight: routeCfg.weight
-        });
-        routeCfg.layer.addLayer(polyline);
-    }
-    updateRouteDistanceUI();
-}
-
-function undoLastRoutePoint() {
-    const key = document.getElementById("drawRouteSelect").value;
-    if (routeLatLngs[key] && routeLatLngs[key].length > 0) {
-        routeLatLngs[key].pop();
-        updateRouteLayer(key);
-    }
-}
-
-function clearActiveRoute() {
-    const key = document.getElementById("drawRouteSelect").value;
-    if (confirm(`Czy na pewno usunąć całą trasę ${key}?`)) {
-        routeLatLngs[key] = [];
-        updateRouteLayer(key);
-    }
-}
-
-function extractLatLngsFromGeoJSON(geojson) {
-    const coords = [];
-    if (!geojson || !geojson.features) return coords;
-    geojson.features.forEach(feature => {
-        if (!feature.geometry) return;
-        if (feature.geometry.type === "LineString") {
-            feature.geometry.coordinates.forEach(c => coords.push([c[1], c[0]]));
-        } else if (feature.geometry.type === "MultiLineString") {
-            feature.geometry.coordinates.forEach(line => {
-                line.forEach(c => coords.push([c[1], c[0]]));
-            });
-        }
-    });
-    return coords;
-}
-
-function loadGpxRoute(routeKey, inputElement) {
-    const file = inputElement.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const parser = new DOMParser();
-        const gpx = parser.parseFromString(event.target.result, "text/xml");
-        const geojson = toGeoJSON.gpx(gpx);
-
-        const routeCfg = CONFIG_ROUTES[routeKey];
-        routeCfg.layer.clearLayers();
-        routeCfg.layer.addData(geojson);
-        routeLatLngs[routeKey] = extractLatLngsFromGeoJSON(geojson);
-
-        fitMapToProjectBounds();
-        updateRouteDistanceUI();
     };
-    reader.readAsText(file);
+
+    (geojson.features || []).forEach(feature => collectGeometry(feature.geometry));
+    routeSegments.push(...segments);
+    routeSegmentsByKey.set(routeKey, segments);
 }
 
-/* EKSPORT TRASY DO PLIKU GPX */
-function exportGPX(routeKey) {
-    let coords = [];
+function getRouteAngle(lat, lng, routeKey = null) {
+    const point = mercNorm(lat, lng);
+    const segments = routeKey ? routeSegmentsByKey.get(routeKey) || [] : routeSegments;
+    let nearest = null;
+    let nearestDistanceSquared = Infinity;
 
-    if (routeLatLngs[routeKey] && routeLatLngs[routeKey].length > 0) {
-        coords = routeLatLngs[routeKey];
-    } else {
-        coords = extractLatLngsFromGeoJSON(CONFIG_ROUTES[routeKey].layer.toGeoJSON());
-    }
+    segments.forEach(({ start, end }) => {
+        const dx = end.x - start.x, dy = end.y - start.y;
+        const lengthSquared = dx * dx + dy * dy;
+        if (!lengthSquared) return;
 
-    if (coords.length === 0) {
-        alert(`Brak narysowanej lub zaimportowanej trasy dla typu: ${routeKey}`);
-        return;
-    }
-
-    let gpxContent = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-    gpxContent += `<gpx version="1.1" creator="System Zabezpieczenia Biegu" xmlns="http://www.topografix.com/GPX/1/1">\n`;
-    gpxContent += `  <trk>\n`;
-    gpxContent += `    <name>Trasa ${escapeHtml(routeKey)} - ${escapeHtml(projectName)}</name>\n`;
-    gpxContent += `    <trkseg>\n`;
-
-    coords.forEach(pt => {
-        gpxContent += `      <trkpt lat="${pt[0]}" lon="${pt[1]}"></trkpt>\n`;
-    });
-
-    gpxContent += `    </trkseg>\n`;
-    gpxContent += `  </trk>\n`;
-    gpxContent += `</gpx>`;
-
-    const blob = new Blob([gpxContent], { type: 'application/gpx+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.href = url;
-    downloadAnchor.download = `${(projectName || "projekt").toLowerCase().replace(/\s+/g, '_')}_trasa_${routeKey}.gpx`;
-    downloadAnchor.click();
-    URL.revokeObjectURL(url);
-}
-
-function fitMapToProjectBounds() {
-    const bounds = L.latLngBounds([]);
-    let hasData = false;
-
-    Object.keys(CONFIG_ROUTES).forEach(key => {
-        const layer = CONFIG_ROUTES[key].layer;
-        if (layer.getLayers().length > 0 && layer.getBounds().isValid()) {
-            bounds.extend(layer.getBounds());
-            hasData = true;
+        const pointX = point.x - start.x, pointY = point.y - start.y;
+        const t = Math.max(0, Math.min(1, (pointX * dx + pointY * dy) / lengthSquared));
+        const closestX = start.x + t * dx, closestY = start.y + t * dy;
+        const offsetX = point.x - closestX, offsetY = point.y - closestY;
+        const distanceSquared = offsetX * offsetX + offsetY * offsetY;
+        if (distanceSquared < nearestDistanceSquared) {
+            nearestDistanceSquared = distanceSquared;
+            nearest = { dx, dy };
         }
     });
 
-    points.forEach(p => {
-        if (!Number.isNaN(p.lat) && !Number.isNaN(p.lng)) {
-            bounds.extend([p.lat, p.lng]);
-            hasData = true;
-        }
-    });
-
-    if (hasData && bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [30, 30] });
-    }
+    return nearest ? Math.atan2(nearest.dy, nearest.dx) * 180 / Math.PI : null;
 }
 
-/* NUMERACJA I TWORZENIE PUNKTÓW */
-function generateNextNumber(type) {
-    const cfg = CONFIG_TYPES[type] || { prefix: "PNK" };
-    const prefix = cfg.prefix;
-    let maxNum = 0;
+function getRoutePerpendicularAngle(lat, lng, routeKey = null) {
+    const routeAngle = getRouteAngle(lat, lng, routeKey);
+    return routeAngle === null ? null : routeAngle + 90;
+}
 
-    points.forEach(p => {
-        if (p.typ === type && typeof p.numer === "string") {
-            const match = p.numer.match(new RegExp(`^${prefix}-(\\d+)$`, "i"));
-            if (match) {
-                const val = parseInt(match[1], 10);
-                if (val > maxNum) maxNum = val;
+function normalizeType(typ) {
+    if (typ === "Wolontariusz") return "Służba informacyjna";
+    if (typ === "Ochrona") return "Służba porządkowa";
+    if (typ === "Kierowanie ruchem" || typ === "Policja") return "Służba kierowania ruchem";
+    if (typ === "Płoty") return "Barierki";
+    if (typ === "Lider" || typ === "Koordynator") return "Taśma";
+    return typ;
+}
+
+async function syncPointsData() {
+    try {
+        const importedDocument = localStorage.getItem(IMPORTED_POINTS_DOCUMENT_STORAGE_KEY);
+        let data;
+        if (importedDocument) {
+            data = JSON.parse(importedDocument);
+        } else {
+            const response = await fetch('punkty.json', { cache: 'no-cache' });
+            if (!response.ok) throw new Error("HTTP " + response.status);
+            data = await response.json();
+        }
+        latestPointsDocument = data;
+
+        if (data.projectName) document.getElementById("projectTitle").innerText = data.projectName;
+
+        const pointsArray = data.points || (Array.isArray(data) ? data : []);
+        const incomingIds = new Set();
+        let skipped = 0;
+
+        pointsArray.forEach((p, index) => {
+            try {
+                const typ = normalizeType(p.typ);
+                if (!CONFIG_TYPES[typ]) { skipped++; console.warn("Nieznany typ punktu:", p.typ, p); return; }
+
+                const lat = Number(p.lat), lng = Number(p.lng);
+                if (p.lat === null || p.lat === "" || p.lng === null || p.lng === "" ||
+                    !Number.isFinite(lat) || !Number.isFinite(lng)) {
+                    skipped++; console.warn("Punkt bez poprawnych współrzędnych:", p); return;
+                }
+
+                const pointId = String(p.id || (p.numer ? `${typ}:${p.numer}` : `pt_${index}`));
+                incomingIds.add(pointId);
+
+                let rotationOverride = null;
+                let jsonRotationOverride = null;
+                if (p.kat !== undefined && p.kat !== null && p.kat !== "") {
+                    if (typ !== "Taśma" && typ !== "Barierki") {
+                        console.warn("Pole kat można ustawić tylko dla punktów Taśma lub Barierki:", p);
+                    } else {
+                        const parsedAngle = Number(p.kat);
+                        if (Number.isFinite(parsedAngle)) jsonRotationOverride = parsedAngle;
+                        else console.warn("Niepoprawny kąt w polu kat; używam orientacji względem trasy GPX:", p);
+                    }
+                }
+                if (Object.prototype.hasOwnProperty.call(pointRotationOverrides, pointId)) {
+                    rotationOverride = pointRotationOverrides[pointId];
+                } else {
+                    rotationOverride = jsonRotationOverride;
+                }
+                const automaticRouteAngle = typ === "Śluza"
+                    ? getRoutePerpendicularAngle(lat, lng)
+                    : typ === "Taśma" || typ === "Barierki" ? getRouteAngle(lat, lng) : null;
+                const jsonOffsetX = Number(p.przesuniecieX ?? 0);
+                const jsonOffsetY = Number(p.przesuniecieY ?? 0);
+                const jsonPositionOffset = Number.isFinite(jsonOffsetX) && Number.isFinite(jsonOffsetY) &&
+                    Math.abs(jsonOffsetX) <= 200 && Math.abs(jsonOffsetY) <= 200
+                    ? { x: jsonOffsetX, y: jsonOffsetY }
+                    : { x: 0, y: 0 };
+
+                const safeData = {
+                    id: pointId, typ: typ, numer: escapeHtml(String(p.numer || "")),
+                    numerRaw: String(p.numer || ""),
+                    sektor: escapeHtml(String(p.sektor || "")), liczba_osob: Number(p.liczba_osob) || 0,
+                    telefon: escapeHtml(String(p.telefon || "")), uwagi: escapeHtml(String(p.uwagi || "")),
+                    adres: String(p.adres || ""),
+                    rotationOverride,
+                    jsonRotationOverride,
+                    automaticRouteAngle,
+                    positionOffset: pointPositionOverrides[pointId] || jsonPositionOffset,
+                    jsonPositionOffset,
+                    routeAngle: rotationOverride !== null ? rotationOverride : automaticRouteAngle,
+                    lat, lng
+                };
+
+                if (pointsMap.has(pointId)) updateExistingMarker(pointId, safeData);
+                else createNewMarker(pointId, safeData);
+            } catch (e) {
+                skipped++;
+                console.error("Błąd przetwarzania punktu:", p, e);
             }
-        }
-    });
+        });
 
-    return `${prefix}-${String(maxNum + 1).padStart(3, "0")}`;
-}
+        pointsMap.forEach((point, id) => {
+            if (!incomingIds.has(id)) {
+                typeGroups[point.typ].removeLayer(point.marker);
+                pointsMap.delete(id);
+            }
+        });
 
-function createMarkerIcon(type) {
-    const cfg = CONFIG_TYPES[type] || {};
-    return L.divIcon({
-        className: `custom-marker-icon ${cfg.className || ""}`,
-        html: iconHtml(type),
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
-        popupAnchor: [0, -13]
-    });
-}
+        setDataBadge('ok', localStorage.getItem(IMPORTED_POINTS_DOCUMENT_STORAGE_KEY)
+            ? `Dane: import lokalny ${timeNow()}`
+            : `Dane: OK ${timeNow()}`);
+        if (skipped > 0) setLoadingStatus(`Pominięto ${skipped} punktów z błędnymi danymi (szczegóły w konsoli F12).`, true);
+        else setLoadingStatus(null);
 
-function parseOptionalNumber(val) {
-    if (val === undefined || val === null) return undefined;
-    const str = String(val).trim();
-    if (str === "") return undefined;
-    const num = Number(str);
-    return Number.isFinite(num) && !Number.isNaN(num) ? num : undefined;
-}
-
-function buildPopupHtml(point) {
-    const typeOptions = Object.keys(CONFIG_TYPES)
-        .map(t => `<option value="${escapeHtml(t)}" ${point.typ === t ? "selected" : ""}>${escapeHtml(t)}</option>`)
-        .join("");
-
-    const katVal = point.kat !== undefined ? point.kat : "";
-    const dxVal = point.przesuniecieX !== undefined ? point.przesuniecieX : "";
-    const dyVal = point.przesuniecieY !== undefined ? point.przesuniecieY : "";
-
-    return `
-        <div class="popup-form" data-point-id="${escapeHtml(point.id)}">
-            <div style="display:flex; align-items:center; margin-bottom:4px;">
-                ${badgeHtml(point.typ)}
-                <strong style="font-size:13px;">${escapeHtml(point.numer)}</strong>
-            </div>
-            <label>Numer punktu</label>
-            <input type="text" class="popup-input pf-numer" value="${escapeHtml(point.numer)}">
-
-            <label>Typ</label>
-            <select class="popup-input pf-typ">${typeOptions}</select>
-
-            <label>Sektor / Odcinek</label>
-            <input type="text" class="popup-input pf-sektor" value="${escapeHtml(point.sektor)}" placeholder="np. Odcinek 1">
-
-            <label>Liczba osób (obsada)</label>
-            <input type="number" min="0" step="1" class="popup-input pf-liczba-osob" value="${Number(point.liczba_osob) || 0}">
-
-            <label>Telefon</label>
-            <input type="text" class="popup-input pf-telefon" value="${escapeHtml(point.telefon)}" placeholder="np. +48 600 000 000">
-
-            <label>Adres</label>
-            <input type="text" class="popup-input pf-adres" value="${escapeHtml(point.adres)}" placeholder="np. Aleja Walentego Roździeńskiego, Katowice">
-
-            <label>Uwagi</label>
-            <textarea class="popup-textarea pf-uwagi">${escapeHtml(point.uwagi)}</textarea>
-
-            <div class="popup-advanced">
-                <div style="font-size:10px; font-weight:bold; color:#666; margin-bottom:2px;">Parametry orientacji / przesunięcia (JSON)</div>
-                <div class="popup-row-3">
-                    <div>
-                        <label style="margin-top:0; font-size:10px;">Kąt (kat)</label>
-                        <input type="number" step="any" class="popup-input pf-kat" value="${escapeHtml(katVal)}" placeholder="np. 65">
-                    </div>
-                    <div>
-                        <label style="margin-top:0; font-size:10px;">Przes. X</label>
-                        <input type="number" step="any" class="popup-input pf-dx" value="${escapeHtml(dxVal)}" placeholder="X">
-                    </div>
-                    <div>
-                        <label style="margin-top:0; font-size:10px;">Przes. Y</label>
-                        <input type="number" step="any" class="popup-input pf-dy" value="${escapeHtml(dyVal)}" placeholder="Y">
-                    </div>
-                </div>
-            </div>
-
-            <div class="coords">Lat: ${Number(point.lat).toFixed(6)}, Lng: ${Number(point.lng).toFixed(6)}</div>
-
-            <div class="popup-btn-container">
-                <button type="button" class="popup-btn btn-main pf-save" style="flex:1;">Zapisz</button>
-                <button type="button" class="popup-btn btn-danger pf-remove">Usuń</button>
-            </div>
-        </div>
-    `;
-}
-
-function attachPopupEvents(point) {
-    point.marker.on("popupopen", e => {
-        const container = e.popup.getElement();
-        if (!container) return;
-
-        const saveBtn = container.querySelector(".pf-save");
-        const removeBtn = container.querySelector(".pf-remove");
-
-        if (saveBtn) {
-            saveBtn.onclick = () => {
-                const newNumer = container.querySelector(".pf-numer").value.trim() || point.numer;
-                const newTyp = normalizeType(container.querySelector(".pf-typ").value);
-                const newSektor = normalizeSector(container.querySelector(".pf-sektor").value.trim());
-                const parsedOsoby = parseInt(container.querySelector(".pf-liczba-osob").value, 10);
-                const newLiczbaOsob = Number.isNaN(parsedOsoby) || parsedOsoby < 0 ? 0 : parsedOsoby;
-                const newTelefon = container.querySelector(".pf-telefon").value.trim();
-                const newAdres = container.querySelector(".pf-adres").value.trim();
-                const newUwagi = container.querySelector(".pf-uwagi").value;
-
-                const newKat = parseOptionalNumber(container.querySelector(".pf-kat").value);
-                const newDx = parseOptionalNumber(container.querySelector(".pf-dx").value);
-                const newDy = parseOptionalNumber(container.querySelector(".pf-dy").value);
-
-                point.numer = newNumer;
-                point.typ = newTyp;
-                point.sektor = newSektor;
-                point.liczba_osob = newLiczbaOsob;
-                point.telefon = newTelefon;
-                point.adres = newAdres;
-                point.uwagi = newUwagi;
-
-                if (newKat !== undefined) point.kat = newKat;
-                else delete point.kat;
-
-                if (newDx !== undefined) point.przesuniecieX = newDx;
-                else delete point.przesuniecieX;
-
-                if (newDy !== undefined) point.przesuniecieY = newDy;
-                else delete point.przesuniecieY;
-
-                point.marker.setIcon(createMarkerIcon(point.typ));
-                point.marker.setPopupContent(buildPopupHtml(point));
-                applyPointFilterVisibility(point);
-                refreshList();
-                updateStats();
-            };
-        }
-
-        if (removeBtn) {
-            removeBtn.onclick = () => {
-                deletePoint(point.id);
-            };
-        }
-    });
-}
-
-function applyPointFilterVisibility(point) {
-    const visible = activeFilters[point.typ] !== false;
-    if (visible) {
-        if (!map.hasLayer(point.marker)) point.marker.addTo(map);
-    } else {
-        if (map.hasLayer(point.marker)) map.removeLayer(point.marker);
-    }
-}
-
-function addPoint(lat, lng, type, customData = {}, openPopupAfter = true) {
-    const cleanType = normalizeType(type);
-    const rawStaff = customData.liczba_osob ?? customData.obsada ?? 1;
-    const parsedStaff = parseInt(rawStaff, 10);
-
-    const kat = parseOptionalNumber(customData.kat);
-    const dx = parseOptionalNumber(customData.przesuniecieX);
-    const dy = parseOptionalNumber(customData.przesuniecieY);
-
-    const point = {
-        id: customData.id || generateUUID(),
-        numer: customData.numer || generateNextNumber(cleanType),
-        typ: cleanType,
-        sektor: normalizeSector(customData.sektor || ""),
-        liczba_osob: Number.isFinite(parsedStaff) && !Number.isNaN(parsedStaff) ? Math.max(0, parsedStaff) : 1,
-        telefon: customData.telefon ?? "",
-        adres: customData.adres ?? customData.nazwa ?? "",
-        uwagi: customData.uwagi ?? "",
-        lat: Number(lat),
-        lng: Number(lng),
-        ...(kat !== undefined ? { kat } : {}),
-        ...(dx !== undefined ? { przesuniecieX: dx } : {}),
-        ...(dy !== undefined ? { przesuniecieY: dy } : {}),
-        marker: null
-    };
-
-    const marker = L.marker([point.lat, point.lng], {
-        icon: createMarkerIcon(point.typ),
-        draggable: true
-    });
-
-    marker.bindPopup(() => buildPopupHtml(point));
-
-    marker.on("dragend", () => {
-        const pos = marker.getLatLng();
-        point.lat = pos.lat;
-        point.lng = pos.lng;
-        if (marker.isPopupOpen()) {
-            marker.setPopupContent(buildPopupHtml(point));
-        }
         refreshList();
-    });
-
-    point.marker = marker;
-    attachPopupEvents(point);
-    points.push(point);
-
-    applyPointFilterVisibility(point);
-    refreshList();
-    updateStats();
-
-    if (openPopupAfter && activeFilters[point.typ] !== false) {
-        marker.openPopup();
-    }
-
-    return point;
-}
-
-function deletePoint(pointId) {
-    const idx = points.findIndex(p => p.id === pointId);
-    if (idx === -1) return;
-
-    const pt = points[idx];
-    if (pt.marker && map.hasLayer(pt.marker)) {
-        map.removeLayer(pt.marker);
-    }
-    points.splice(idx, 1);
-    refreshList();
-    updateStats();
-}
-
-function focusPoint(pointId) {
-    const pt = points.find(p => p.id === pointId);
-    if (!pt) return;
-
-    if (activeFilters[pt.typ] === false) {
-        activeFilters[pt.typ] = true;
-        const cbId = `filter_${pt.typ.replace(/\s+/g, '_')}`;
-        const cb = document.getElementById(cbId);
-        if (cb) cb.checked = true;
-        applyPointFilterVisibility(pt);
+        refreshRotationEditor();
         updateStats();
-    }
 
-    map.setView([pt.lat, pt.lng], Math.max(map.getZoom(), 16));
-    if (!map.hasLayer(pt.marker)) {
-        pt.marker.addTo(map);
+        if (isFirstLoad) {
+            fitMapToAll();
+            isFirstLoad = false;
+        }
+    } catch (e) {
+        console.error("Błąd synchronizacji punktów:", e);
+        setDataBadge('error', `Dane: błąd ${timeNow()}`);
+        setLoadingStatus(`Nie udało się wczytać punkty.json (${e.message}). Wyświetlam ostatnie poprawne dane.`, true);
     }
-    pt.marker.openPopup();
 }
 
-/* OBSŁUGA KLIKNIĘĆ NA MAPIE */
-map.on("click", e => {
-    const { lat, lng } = e.latlng;
+function popupHtml(p) {
+    let h = `<b>${p.typ}</b> - ${p.numer}<br>Obsada: ${p.liczba_osob} os.`;
+    if (p.sektor) h += `<br>Sektor: ${p.sektor}`;
+    if (p.telefon) h += `<br>Tel: ${p.telefon}`;
+    if (p.uwagi) h += `<br>Uwagi: ${p.uwagi}`;
+    return h;
+}
 
-    if (isDrawingRoute) {
-        const key = document.getElementById("drawRouteSelect").value;
-        routeLatLngs[key].push([lat, lng]);
-        updateRouteLayer(key);
+function buildIcon(point) {
+    const cfg = CONFIG_TYPES[point.typ];
+    const isSluza = point.typ === "Śluza";
+    const isTasma = point.typ === "Taśma";
+    const isBarierki = point.typ === "Barierki";
+    const isLinearElement = isSluza || isTasma || isBarierki;
+    const scale = isLinearElement ? getLinearIconScale() : 1;
+
+    const baseSize = isBarierki
+        ? [36, 14.4]
+        : isTasma
+            ? [36, 36]
+            : isSluza
+                ? [48, 48]
+                : [26, 26];
+
+    const markerSize = [baseSize[0] * scale, baseSize[1] * scale];
+    const baseAnchor = [markerSize[0] / 2, markerSize[1] / 2];
+    const offset = point.positionOffset || { x: 0, y: 0 };
+    const iconAnchor = [
+        baseAnchor[0] - offset.x * scale,
+        baseAnchor[1] - offset.y * scale
+    ];
+    const iconRotation = isLinearElement ? point.routeAngle : null;
+    const iconHtml = Number.isFinite(iconRotation)
+        ? getIconHtml(cfg).replace("<svg ", `<svg style="transform:rotate(${iconRotation}deg);transform-origin:center;" `)
+        : getIconHtml(cfg);
+    return L.divIcon({
+        className: `custom-marker-icon ${cfg.className}`,
+        html: iconHtml,
+        iconSize: markerSize,
+        iconAnchor
+    });
+}
+
+function createNewMarker(id, p) {
+    const marker = L.marker([p.lat, p.lng], { icon: buildIcon(p) });
+    marker.bindPopup(popupHtml(p));
+    typeGroups[p.typ].addLayer(marker);
+    pointsMap.set(id, { ...p, marker });
+}
+
+function updateExistingMarker(id, p) {
+    const existing = pointsMap.get(id);
+
+    if (existing.typ !== p.typ) {
+        typeGroups[existing.typ].removeLayer(existing.marker);
+        pointsMap.delete(id);
+        createNewMarker(id, p);
         return;
     }
-
-    if (currentMode) {
-        addPoint(lat, lng, currentMode, {}, true);
+    if (existing.lat !== p.lat || existing.lng !== p.lng) existing.marker.setLatLng([p.lat, p.lng]);
+    if (existing.routeAngle !== p.routeAngle ||
+        existing.positionOffset.x !== p.positionOffset.x ||
+        existing.positionOffset.y !== p.positionOffset.y) {
+        existing.marker.setIcon(buildIcon(p));
     }
-});
-
-/* STATYSTYKI, WYSZUKIWARKA I LISTA PUNKTÓW */
-function updateStats() {
-    const tbody = document.getElementById("statTableBody");
-    const totals = {};
-    let grandCount = 0;
-    let grandStaff = 0;
-
-    Object.keys(CONFIG_TYPES).forEach(t => {
-        totals[t] = { count: 0, staff: 0 };
-    });
-
-    points.forEach(p => {
-        const t = normalizeType(p.typ);
-        if (!totals[t]) totals[t] = { count: 0, staff: 0 };
-        const staffVal = Number(p.liczba_osob) || 0;
-        totals[t].count += 1;
-        totals[t].staff += staffVal;
-        grandCount += 1;
-        grandStaff += staffVal;
-    });
-
-    let html = Object.keys(CONFIG_TYPES).map(t => `
-        <tr>
-            <td>${badgeHtml(t)}<span>${escapeHtml(t)}</span></td>
-            <td><b>${totals[t].count}</b></td>
-            <td><b>${totals[t].staff}</b></td>
-        </tr>
-    `).join("");
-
-    html += `
-        <tr style="background:#f1f3f5; font-weight:bold;">
-            <td>RAZEM</td>
-            <td>${grandCount}</td>
-            <td>${grandStaff}</td>
-        </tr>
-    `;
-
-    tbody.innerHTML = html;
+    existing.marker.setPopupContent(popupHtml(p));
+    pointsMap.set(id, { ...p, marker: existing.marker });
 }
 
-function searchPoints() {
-    refreshList();
+function fitMapToAll() {
+    const bounds = L.latLngBounds([]);
+    Object.keys(CONFIG_ROUTES).forEach(key => {
+        if (CONFIG_ROUTES[key].layer.getLayers().length > 0) {
+            bounds.extend(CONFIG_ROUTES[key].layer.getBounds());
+        }
+    });
+    if (bounds.isValid()) map.fitBounds(bounds);
 }
 
 function refreshList() {
-    const listEl = document.getElementById("pointList");
-    const countEl = document.getElementById("pointsCount");
-    const query = (document.getElementById("searchPointInput").value || "").trim().toLowerCase();
+    let rows = "";
+    let visibleCount = 0;
+    const searchVal = document.getElementById("searchPointInput").value.toLowerCase().trim();
 
-    const filtered = points.filter(p => {
-        if (activeFilters[p.typ] === false) return false;
-        if (!query) return true;
-        const haystack = `${p.numer} ${p.typ} ${p.sektor} ${p.adres} ${p.telefon} ${p.uwagi}`.toLowerCase();
-        return haystack.includes(query);
+    pointsMap.forEach((p, id) => {
+        if (!activeFilters[p.typ]) return;
+        if (searchVal && !p.numer.toLowerCase().includes(searchVal)) return;
+
+        visibleCount++;
+        const cfg = CONFIG_TYPES[p.typ];
+
+        rows += `
+        <tr class="pointItem" data-id="${escapeHtml(id)}" style="border-left: 5px solid ${cfg.color};">
+            <td><div class="point-name-cell">
+                ${getIconBadgeHtml(cfg)}
+                <b>${p.typ}</b> - <span>${p.numer}</span>
+            </div></td>
+            <td class="point-notes-cell">${p.uwagi || ""}</td>
+        </tr>`;
     });
-
-    countEl.textContent = filtered.length;
-
-    if (filtered.length === 0) {
-        listEl.innerHTML = `<div style="font-size:12px; color:#777; padding:6px;">Brak punktów spełniających kryteria.</div>`;
-        return;
-    }
-
-    listEl.innerHTML = "";
-    filtered.forEach(p => {
-        const item = document.createElement("div");
-        item.className = "pointItem";
-        item.innerHTML = `
-            <div class="point-header">
-                <div style="display:flex; align-items:center; min-width:0;">
-                    ${badgeHtml(p.typ)}
-                    <strong style="white-space:nowrap;">${escapeHtml(p.numer)}</strong>
-                    ${p.adres ? `<span style="margin-left:5px; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">— ${escapeHtml(p.adres)}</span>` : ""}
-                </div>
-                <div style="flex-shrink:0;">
-                    <button type="button" class="action-btn btn-edit" title="Edytuj punkt">Edytuj</button>
-                    <button type="button" class="action-btn btn-delete" title="Usuń punkt">X</button>
-                </div>
-            </div>
-            <div class="point-meta">
-                <span>${escapeHtml(p.typ)}</span>
-                ${p.sektor ? `<span class="badge-sector" style="margin-left:4px;">${escapeHtml(p.sektor)}</span>` : ""}
-                <span style="margin-left:6px;"><i class="fa-solid fa-users"></i> <b>${Number(p.liczba_osob) || 0}</b></span>
-                ${p.telefon ? `<span style="margin-left:6px;"><i class="fa-solid fa-phone"></i> ${escapeHtml(p.telefon)}</span>` : ""}
-                ${p.kat !== undefined ? `<span style="margin-left:6px; color:#666;">kąt: ${escapeHtml(p.kat)}°</span>` : ""}
-            </div>
-            ${p.uwagi ? `<div style="font-size:11px; color:#666; margin-top:3px;">${escapeHtml(p.uwagi)}</div>` : ""}
-            <div class="coords">${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}</div>
-        `;
-
-        item.addEventListener("click", () => focusPoint(p.id));
-
-        const editBtn = item.querySelector(".btn-edit");
-        editBtn.addEventListener("click", ev => {
-            ev.stopPropagation();
-            focusPoint(p.id);
-        });
-
-        const delBtn = item.querySelector(".btn-delete");
-        delBtn.addEventListener("click", ev => {
-            ev.stopPropagation();
-            if (confirm(`Usunąć punkt ${p.numer}?`)) {
-                deletePoint(p.id);
-            }
-        });
-
-        listEl.appendChild(item);
-    });
+    document.getElementById("pointList").innerHTML = `
+        <table class="point-list-table">
+            <thead><tr><th style="width:55%;">Punkt</th><th>Uwagi</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>`;
+    document.getElementById("pointsCount").innerText = visibleCount;
 }
 
-/* ZARZĄDZANIE PROJEKTEM ORAZ IMPORT / EKSPORT JSON I XLSX */
-function clearProject() {
-    if (!confirm("Wyczyścić bieżący projekt (wszystkie punkty i trasy)?")) return;
+document.getElementById("pointList").addEventListener("click", e => {
+    const item = e.target.closest(".pointItem");
+    if (item) focusPoint(item.dataset.id);
+});
 
-    points.forEach(p => {
-        if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
-    });
-    points = [];
-
-    Object.keys(CONFIG_ROUTES).forEach(key => {
-        routeLatLngs[key] = [];
-        CONFIG_ROUTES[key].layer.clearLayers();
-    });
-
-    currentMode = null;
-    if (isDrawingRoute) toggleDrawRouteMode();
-    document.querySelectorAll(".mode-btn").forEach(btn => btn.classList.remove("active"));
-    document.getElementById("searchPointInput").value = "";
-
-    refreshList();
-    updateStats();
-    updateRouteDistanceUI();
+function focusPoint(id) {
+    const point = pointsMap.get(id);
+    if (!point) return;
+    map.setView([point.lat, point.lng], 17);
+    point.marker.openPopup();
 }
 
-function downloadFile(content, filename, mimeType) {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-}
+function searchPoints() { refreshList(); }
 
-function exportJSON() {
-    const payload = {
-        projectName: projectName,
-        generatedAt: new Date().toISOString(),
-        drawnRoutes: {
-            "5K": Array.isArray(routeLatLngs["5K"]) ? routeLatLngs["5K"] : [],
-            "10K": Array.isArray(routeLatLngs["10K"]) ? routeLatLngs["10K"] : [],
-            "SM": Array.isArray(routeLatLngs["SM"]) ? routeLatLngs["SM"] : [],
-            "HM": Array.isArray(routeLatLngs["HM"]) ? routeLatLngs["HM"] : [],
-            "UM": Array.isArray(routeLatLngs["UM"]) ? routeLatLngs["UM"] : []
-        },
-        points: points.map(p => {
-            const exportedPoint = {
-                typ: p.typ,
-                numer: p.numer,
-                sektor: p.sektor,
-                liczba_osob: Number(p.liczba_osob) || 0,
-                telefon: p.telefon || "",
-                uwagi: p.uwagi || "",
-                lat: p.lat,
-                lng: p.lng
-            };
-            if (p.adres) exportedPoint.adres = p.adres;
-            if (p.kat !== undefined) exportedPoint.kat = p.kat;
-            if (p.przesuniecieX !== undefined) exportedPoint.przesuniecieX = p.przesuniecieX;
-            if (p.przesuniecieY !== undefined) exportedPoint.przesuniecieY = p.przesuniecieY;
-            return exportedPoint;
-        })
-    };
+function refreshRotationEditor() {
+    const select = document.getElementById("rotationPointSelect");
+    const previousId = select.value;
+    const eligiblePoints = Array.from(pointsMap.values())
+        .filter(point => point.typ === "Taśma" || point.typ === "Barierki")
+        .sort((a, b) => a.typ.localeCompare(b.typ, "pl") || a.numerRaw.localeCompare(b.numerRaw, "pl"));
 
-    const safeName = (projectName || "projekt").toLowerCase().replace(/\s+/g, "_");
-    downloadFile(JSON.stringify(payload, null, 2), `${safeName}_punkty_zaktualizowane.json`, "application/json;charset=utf-8");
-}
+    select.innerHTML = `<option value="">${eligiblePoints.length ? "Wybierz punkt" : "Brak punktów Taśma/Barierki"}</option>` +
+        eligiblePoints.map(point =>
+            `<option value="${escapeHtml(point.id)}">${escapeHtml(point.typ)} - ${escapeHtml(point.numerRaw || point.id)}</option>`
+        ).join("");
 
-function importJSON(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+    if (eligiblePoints.some(point => point.id === previousId)) select.value = previousId;
+    const hasSelection = Boolean(select.value);
+    const input = document.getElementById("rotationAngleInput");
+    const canSave = hasSelection && rotationStorageReady;
+    const canSavePosition = hasSelection && positionStorageReady;
+    input.disabled = !hasSelection;
+    document.getElementById("rotationOffsetXInput").disabled = !hasSelection;
+    document.getElementById("rotationOffsetYInput").disabled = !hasSelection;
+    document.getElementById("saveRotationBtn").disabled = !canSave;
+    document.getElementById("flipRotation180Btn").disabled = !canSave;
+    document.getElementById("resetRotationBtn").disabled = !canSave;
+    document.getElementById("savePositionBtn").disabled = !canSavePosition;
+    document.getElementById("resetPositionBtn").disabled = !canSavePosition;
 
-    const reader = new FileReader();
-    reader.onload = e => {
-        try {
-            const data = JSON.parse(e.target.result);
-
-            points.forEach(p => {
-                if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
-            });
-            points = [];
-
-            if (data.projectName) {
-                projectName = String(data.projectName);
-                document.getElementById("projectNameInput").value = projectName;
-            }
-
-            Object.keys(CONFIG_ROUTES).forEach(key => {
-                routeLatLngs[key] = [];
-                CONFIG_ROUTES[key].layer.clearLayers();
-            });
-
-            const incomingRoutes = data.drawnRoutes || data.routes;
-            if (incomingRoutes && typeof incomingRoutes === "object") {
-                Object.keys(CONFIG_ROUTES).forEach(key => {
-                    if (Array.isArray(incomingRoutes[key])) {
-                        routeLatLngs[key] = incomingRoutes[key]
-                            .filter(pt => Array.isArray(pt) && pt.length >= 2 && !Number.isNaN(Number(pt[0])) && !Number.isNaN(Number(pt[1])))
-                            .map(pt => [Number(pt[0]), Number(pt[1])]);
-                        updateRouteLayer(key);
-                    }
-                });
-            }
-
-            if (Array.isArray(data.points)) {
-                data.points.forEach(pt => {
-                    if (pt && !Number.isNaN(Number(pt.lat)) && !Number.isNaN(Number(pt.lng))) {
-                        addPoint(Number(pt.lat), Number(pt.lng), pt.typ, pt, false);
-                    }
-                });
-            }
-
-            fitMapToProjectBounds();
-            refreshList();
-            updateStats();
-            updateRouteDistanceUI();
-        } catch (err) {
-            alert("Błąd podczas odczytu pliku JSON: " + err.message);
+    if (hasSelection) {
+        const point = pointsMap.get(select.value);
+        if (input.dataset.pointId !== select.value) {
+            input.value = Number.isFinite(point.routeAngle) ? String(point.routeAngle) : "0";
+            input.dataset.pointId = select.value;
+            document.getElementById("rotationOffsetXInput").value = String(point.positionOffset.x);
+            document.getElementById("rotationOffsetYInput").value = String(point.positionOffset.y);
         }
-    };
-    reader.readAsText(file);
-    event.target.value = "";
+        if (!rotationStorageReady) {
+            setRotationStatus("Zapisywanie niedostępne — lokalne ustawienia nie zostały poprawnie odczytane.", true);
+        } else if (!positionStorageReady) {
+            setRotationStatus("Nie można zapisać przesunięcia — lokalne ustawienia nie zostały poprawnie odczytane.", true);
+        } else if (Object.prototype.hasOwnProperty.call(pointRotationOverrides, select.value)) {
+            setRotationStatus("Punkt ma indywidualny kąt zapisany w tej przeglądarce.");
+        } else if (point.jsonRotationOverride !== null) {
+            setRotationStatus("Używany jest kąt z pola „kat” w pliku punkty.json.");
+        } else {
+            setRotationStatus(Number.isFinite(point.automaticRouteAngle)
+                ? "Używana jest orientacja automatyczna względem trasy GPX."
+                : "Brak odcinka GPX w pobliżu — używany jest kąt 0°.");
+        }
+    } else if (rotationStorageReady) {
+        input.value = "0";
+        input.dataset.pointId = "";
+        setRotationStatus("Wybierz punkt Taśma lub Barierki, aby ustawić jego kąt.");
+    }
 }
 
-function exportExcel() {
-    if (typeof XLSX === "undefined") {
-        alert("Biblioteka SheetJS (XLSX) nie została załadowana.");
+function handleRotationPointChange() {
+    const select = document.getElementById("rotationPointSelect");
+    const input = document.getElementById("rotationAngleInput");
+    const point = pointsMap.get(select.value);
+    input.dataset.pointId = select.value;
+    input.value = point && Number.isFinite(point.routeAngle) ? String(point.routeAngle) : "0";
+    document.getElementById("rotationOffsetXInput").value = point ? String(point.positionOffset.x) : "0";
+    document.getElementById("rotationOffsetYInput").value = point ? String(point.positionOffset.y) : "0";
+    refreshRotationEditor();
+}
+
+function persistPointRotationOverrides(nextOverrides) {
+    if (!rotationStorageReady) {
+        setRotationStatus("Nie można zapisać ustawienia, bo lokalne dane nie zostały poprawnie odczytane.", true);
+        return false;
+    }
+    try {
+        localStorage.setItem(POINT_ROTATION_STORAGE_KEY, JSON.stringify(nextOverrides));
+        pointRotationOverrides = nextOverrides;
+        return true;
+    } catch (e) {
+        console.error("Nie udało się zapisać lokalnego kąta:", e);
+        setRotationStatus(`Nie udało się zapisać kąta w tej przeglądarce: ${e.message}`, true);
+        return false;
+    }
+}
+
+function applyPointRotation(point, angle) {
+    point.rotationOverride = angle !== null ? angle : point.jsonRotationOverride;
+    point.routeAngle = point.rotationOverride !== null
+        ? point.rotationOverride
+        : point.automaticRouteAngle;
+    point.marker.setIcon(buildIcon(point));
+    pointsMap.set(point.id, point);
+}
+
+function persistPointPositionOverrides(nextOverrides) {
+    if (!positionStorageReady) {
+        setRotationStatus("Nie można zapisać przesunięcia, bo lokalne ustawienia nie zostały poprawnie odczytane.", true);
+        return false;
+    }
+    try {
+        localStorage.setItem(POINT_POSITION_STORAGE_KEY, JSON.stringify(nextOverrides));
+        pointPositionOverrides = nextOverrides;
+        return true;
+    } catch (e) {
+        console.error("Nie udało się zapisać lokalnego przesunięcia:", e);
+        setRotationStatus(`Nie udało się zapisać przesunięcia w tej przeglądarce: ${e.message}`, true);
+        return false;
+    }
+}
+
+function applyPointPosition(point, offset) {
+    point.positionOffset = offset;
+    point.marker.setIcon(buildIcon(point));
+    pointsMap.set(point.id, point);
+}
+
+function saveSelectedPointPosition() {
+    const pointId = document.getElementById("rotationPointSelect").value;
+    const point = pointsMap.get(pointId);
+    const xInput = document.getElementById("rotationOffsetXInput");
+    const yInput = document.getElementById("rotationOffsetYInput");
+    const x = Number(xInput.value), y = Number(yInput.value);
+    if (!point) {
+        setRotationStatus("Wybierz poprawny punkt.", true);
+        return;
+    }
+    if (xInput.value.trim() === "" || yInput.value.trim() === "" ||
+        !Number.isFinite(x) || !Number.isFinite(y) || Math.abs(x) > 200 || Math.abs(y) > 200) {
+        setRotationStatus("Podaj przesunięcia od -200 do 200 px.", true);
         return;
     }
 
-    const rows = points.map(p => ({
-        "Numer": p.numer,
-        "Typ": p.typ,
-        "Sektor": p.sektor,
-        "Liczba osób": Number(p.liczba_osob) || 0,
-        "Telefon": p.telefon || "",
-        "Adres": p.adres || "",
-        "Uwagi": p.uwagi || "",
-        "Kąt": p.kat ?? "",
-        "Przesunięcie X": p.przesuniecieX ?? "",
-        "Przesunięcie Y": p.przesuniecieY ?? "",
-        "Szerokość (lat)": Number(p.lat),
-        "Długość (lng)": Number(p.lng)
+    const offset = { x, y };
+    const nextOverrides = { ...pointPositionOverrides, [pointId]: offset };
+    if (!persistPointPositionOverrides(nextOverrides)) return;
+    applyPointPosition(point, offset);
+    setRotationStatus(`Zapisano przesunięcie X: ${x}px, Y: ${y}px dla punktu ${point.typ} - ${point.numerRaw}.`);
+}
+
+function resetSelectedPointPosition() {
+    const pointId = document.getElementById("rotationPointSelect").value;
+    const point = pointsMap.get(pointId);
+    if (!point) {
+        setRotationStatus("Wybierz poprawny punkt.", true);
+        return;
+    }
+
+    const nextOverrides = { ...pointPositionOverrides, [pointId]: { x: 0, y: 0 } };
+    if (!persistPointPositionOverrides(nextOverrides)) return;
+    applyPointPosition(point, { x: 0, y: 0 });
+    document.getElementById("rotationOffsetXInput").value = "0";
+    document.getElementById("rotationOffsetYInput").value = "0";
+    setRotationStatus("Wyzerowano przesunięcie punktu.");
+}
+
+function saveSelectedPointRotation() {
+    const pointId = document.getElementById("rotationPointSelect").value;
+    const point = pointsMap.get(pointId);
+    const angleInput = document.getElementById("rotationAngleInput");
+    const angle = Number(angleInput.value);
+    if (!point) {
+        setRotationStatus("Wybierz poprawny punkt.", true);
+        return;
+    }
+    if (angleInput.value.trim() === "" || !Number.isFinite(angle) || angle < -360 || angle > 360) {
+        setRotationStatus("Podaj kąt od -360° do 360°.", true);
+        angleInput.focus();
+        return;
+    }
+
+    const nextOverrides = { ...pointRotationOverrides, [pointId]: angle };
+    if (!persistPointRotationOverrides(nextOverrides)) return;
+    applyPointRotation(point, angle);
+    setRotationStatus(`Zapisano kąt ${angle}° dla punktu ${point.typ} - ${point.numerRaw}.`);
+}
+
+function flipSelectedPointRotation180() {
+    const pointId = document.getElementById("rotationPointSelect").value;
+    const point = pointsMap.get(pointId);
+    const angleInput = document.getElementById("rotationAngleInput");
+    if (!point) {
+        setRotationStatus("Wybierz poprawny punkt.", true);
+        return;
+    }
+
+    const currentAngle = Number.isFinite(Number(angleInput.value)) && angleInput.value.trim() !== ""
+        ? Number(angleInput.value)
+        : (Number.isFinite(point.routeAngle) ? point.routeAngle : 0);
+
+    let flipped = (currentAngle + 180) % 360;
+    if (flipped > 180) flipped -= 360;
+    if (flipped < -180) flipped += 360;
+    const rounded = Number(flipped.toFixed(1));
+
+    const nextOverrides = { ...pointRotationOverrides, [pointId]: rounded };
+    if (!persistPointRotationOverrides(nextOverrides)) return;
+    applyPointRotation(point, rounded);
+    angleInput.value = String(rounded);
+    setRotationStatus(`Obrócono o 180° (nowy kąt: ${rounded}°) dla punktu ${point.typ} - ${point.numerRaw}.`);
+}
+
+function resetSelectedPointRotation() {
+    const pointId = document.getElementById("rotationPointSelect").value;
+    const point = pointsMap.get(pointId);
+    if (!point) {
+        setRotationStatus("Wybierz poprawny punkt.", true);
+        return;
+    }
+
+    const nextOverrides = { ...pointRotationOverrides };
+    delete nextOverrides[pointId];
+    if (!persistPointRotationOverrides(nextOverrides)) return;
+    applyPointRotation(point, null);
+    document.getElementById("rotationAngleInput").value =
+        Number.isFinite(point.routeAngle) ? String(point.routeAngle) : "0";
+    setRotationStatus(point.jsonRotationOverride !== null
+        ? `Przywrócono kąt ${point.jsonRotationOverride}° z pliku punkty.json.`
+        : "Przywrócono automatyczne ustawienie względem trasy GPX.");
+}
+
+// ---------- Automatyczne dopasowanie kątów barierek i taśm ----------
+function getMercatorAngleDeg(lat1, lng1, lat2, lng2) {
+    const p1 = mercNorm(lat1, lng1);
+    const p2 = mercNorm(lat2, lng2);
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    if (!Number.isFinite(dx) || !Number.isFinite(dy) || (dx === 0 && dy === 0)) {
+        return null;
+    }
+    return Number((Math.atan2(dy, dx) * 180 / Math.PI).toFixed(1));
+}
+
+function approximateMetersBetween(p1, p2) {
+    const midLat = ((p1.lat + p2.lat) / 2) * Math.PI / 180;
+    const dLatM = (p2.lat - p1.lat) * 110574;
+    const dLngM = (p2.lng - p1.lng) * 111320 * Math.cos(midLat);
+    return Math.hypot(dLatM, dLngM);
+}
+
+function findBestNeighborAngle(target, candidates, maxDistanceM = 18) {
+    let bestNeighbor = null;
+    let bestScore = Infinity;
+
+    candidates.forEach(other => {
+        if (other.id === target.id || other.typ !== target.typ) return;
+        const dist = approximateMetersBetween(target, other);
+        if (dist < 0.3 || dist > maxDistanceM) return;
+
+        const sameNote = target.uwagi && other.uwagi && target.uwagi === other.uwagi;
+        const score = sameNote ? dist * 0.7 : dist;
+        if (score < bestScore) {
+            bestScore = score;
+            bestNeighbor = other;
+        }
+    });
+
+    if (!bestNeighbor) return null;
+    return getMercatorAngleDeg(bestNeighbor.lat, bestNeighbor.lng, target.lat, target.lng);
+}
+
+function autoAlignBarriersAndTapes() {
+    if (!rotationStorageReady) {
+        setRotationStatus("Nie można zapisać kątów — lokalne ustawienia nie są gotowe.", true);
+        return;
+    }
+
+    const overwriteExisting = Boolean(document.getElementById("autoAlignOverwriteExisting")?.checked);
+    const allPoints = Array.from(pointsMap.values());
+    const targets = allPoints.filter(p => p.typ === "Barierki" || p.typ === "Taśma");
+
+    if (!targets.length) {
+        setRotationStatus("Brak punktów typu Barierki lub Taśma do wyrównania.");
+        return;
+    }
+
+    const nextOverrides = { ...pointRotationOverrides };
+    let updatedCount = 0;
+    let neighborCount = 0;
+    let routeCount = 0;
+
+    targets.forEach(point => {
+        const hasManualOverride = Object.prototype.hasOwnProperty.call(nextOverrides, point.id);
+        const hasJsonAngle = point.jsonRotationOverride !== null && Number.isFinite(point.jsonRotationOverride);
+
+        if (!overwriteExisting && (hasManualOverride || hasJsonAngle)) {
+            return;
+        }
+
+        const neighborAngle = findBestNeighborAngle(point, targets, 18);
+        let computedAngle = neighborAngle;
+
+        if (computedAngle === null) {
+            const routeAngle = getRouteAngle(point.lat, point.lng);
+            if (Number.isFinite(routeAngle)) {
+                computedAngle = Number(routeAngle.toFixed(1));
+                routeCount++;
+            }
+        } else {
+            neighborCount++;
+        }
+
+        if (computedAngle !== null && Number.isFinite(computedAngle)) {
+            nextOverrides[point.id] = computedAngle;
+            applyPointRotation(point, computedAngle);
+            updatedCount++;
+        }
+    });
+
+    if (updatedCount > 0) {
+        if (!persistPointRotationOverrides(nextOverrides)) return;
+        const selectedId = document.getElementById("rotationPointSelect").value;
+        const selectedPoint = pointsMap.get(selectedId);
+        if (selectedPoint) {
+            document.getElementById("rotationAngleInput").value =
+                Number.isFinite(selectedPoint.routeAngle) ? String(selectedPoint.routeAngle) : "0";
+        }
+        refreshRotationEditor();
+    }
+
+    setRotationStatus(
+        `Auto-dopasowano ${updatedCount} pkt (z sąsiadów w szeregu: ${neighborCount}, z trasy GPX: ${routeCount}).`
+    );
+}
+
+function getExportPointsArray(documentData) {
+    if (Array.isArray(documentData)) return documentData;
+    if (documentData && Array.isArray(documentData.points)) return documentData.points;
+    throw new Error("Plik punktów nie zawiera tablicy punktów do eksportu.");
+}
+
+function getExportPointId(point, index) {
+    const type = normalizeType(point.typ);
+    return String(point.id || (point.numer ? `${type}:${point.numer}` : `pt_${index}`));
+}
+
+function createUpdatedPointsDocument() {
+    if (!latestPointsDocument) throw new Error("Dane punktów nie zostały jeszcze wczytane.");
+    const documentCopy = JSON.parse(JSON.stringify(latestPointsDocument));
+    const points = getExportPointsArray(documentCopy);
+
+    points.forEach((point, index) => {
+        const pointId = getExportPointId(point, index);
+        if (Object.prototype.hasOwnProperty.call(pointRotationOverrides, pointId)) {
+            point.kat = pointRotationOverrides[pointId];
+        }
+        if (Object.prototype.hasOwnProperty.call(pointPositionOverrides, pointId)) {
+            const offset = pointPositionOverrides[pointId];
+            point.przesuniecieX = offset.x;
+            point.przesuniecieY = offset.y;
+        }
+    });
+    return documentCopy;
+}
+
+function validateImportedPointsDocument(documentData) {
+    const points = getExportPointsArray(documentData);
+    const ids = new Set();
+
+    points.forEach((point, index) => {
+        if (!point || typeof point !== "object" || Array.isArray(point)) {
+            throw new Error(`Punkt nr ${index + 1} ma nieprawidłowy format.`);
+        }
+        const type = normalizeType(point.typ);
+        if (!CONFIG_TYPES[type]) throw new Error(`Nieznany typ punktu w wierszu ${index + 1}: ${point.typ || "(brak)"}.`);
+        const lat = Number(point.lat), lng = Number(point.lng);
+        if (point.lat === null || point.lat === "" || point.lng === null || point.lng === "" ||
+            !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+            throw new Error(`Punkt ${point.numer || index + 1} ma nieprawidłowe współrzędne.`);
+        }
+        const id = getExportPointId(point, index);
+        if (ids.has(id)) throw new Error(`Powtórzony identyfikator punktu: ${id}.`);
+        ids.add(id);
+
+        if (point.kat !== undefined && point.kat !== null && point.kat !== "") {
+            if (type !== "Taśma" && type !== "Barierki") {
+                throw new Error(`Pole „kat” jest obsługiwane tylko dla Taśmy i Barierek (${id}).`);
+            }
+            if (!Number.isFinite(Number(point.kat))) throw new Error(`Nieprawidłowy kąt punktu ${id}.`);
+        }
+        ["przesuniecieX", "przesuniecieY"].forEach(field => {
+            if (point[field] !== undefined && point[field] !== null &&
+                (!Number.isFinite(Number(point[field])) || Math.abs(Number(point[field])) > 200)) {
+                throw new Error(`Nieprawidłowe pole ${field} dla punktu ${id} (dozwolone od -200 do 200 px).`);
+            }
+        });
+    });
+    return points;
+}
+
+function importPointsDocument(documentData) {
+    const points = validateImportedPointsDocument(documentData);
+    const importedAngles = {};
+    const importedOffsets = {};
+    points.forEach((point, index) => {
+        const type = normalizeType(point.typ);
+        const id = getExportPointId(point, index);
+        if ((type === "Taśma" || type === "Barierki") &&
+            point.kat !== undefined && point.kat !== null && point.kat !== "") {
+            importedAngles[id] = Number(point.kat);
+        }
+        if (type === "Taśma" || type === "Barierki") {
+            const x = Number(point.przesuniecieX ?? 0);
+            const y = Number(point.przesuniecieY ?? 0);
+            if (x !== 0 || y !== 0) importedOffsets[id] = { x, y };
+        }
+    });
+
+    const storageKeys = [
+        IMPORTED_POINTS_DOCUMENT_STORAGE_KEY,
+        POINT_ROTATION_STORAGE_KEY,
+        POINT_POSITION_STORAGE_KEY
+    ];
+    const previousValues = storageKeys.map(key => localStorage.getItem(key));
+    try {
+        localStorage.setItem(POINT_ROTATION_STORAGE_KEY, JSON.stringify(importedAngles));
+        localStorage.setItem(POINT_POSITION_STORAGE_KEY, JSON.stringify(importedOffsets));
+        localStorage.setItem(IMPORTED_POINTS_DOCUMENT_STORAGE_KEY, JSON.stringify(documentData));
+    } catch (e) {
+        storageKeys.forEach((key, index) => {
+            try {
+                if (previousValues[index] === null) localStorage.removeItem(key);
+                else localStorage.setItem(key, previousValues[index]);
+            } catch (rollbackError) {
+                console.error("Nie udało się przywrócić lokalnego stanu po błędzie importu:", key, rollbackError);
+            }
+        });
+        throw new Error(`Nie udało się zapisać importu w tej przeglądarce: ${e.message}`);
+    }
+
+    pointRotationOverrides = importedAngles;
+    pointPositionOverrides = importedOffsets;
+    rotationStorageReady = true;
+    positionStorageReady = true;
+    latestPointsDocument = documentData;
+}
+
+async function importPointsJson() {
+    const input = document.getElementById("importPointsJsonInput");
+    const file = input.files && input.files[0];
+    if (!file) {
+        setExportStatus("Najpierw wybierz plik JSON.", true);
+        return;
+    }
+    if (!window.confirm("Import zastąpi punkty używane obecnie w tej przeglądarce. Oryginalny plik nie zostanie zmieniony. Kontynuować?")) {
+        return;
+    }
+
+    try {
+        const importedDocument = JSON.parse(await file.text());
+        importPointsDocument(importedDocument);
+        await syncPointsData();
+        setExportStatus(`Zaimportowano ${getExportPointsArray(importedDocument).length} punktów z pliku ${file.name}.`);
+    } catch (e) {
+        console.error("Nie udało się zaimportować pliku JSON:", e);
+        setExportStatus(`Nie udało się zaimportować JSON: ${e.message}`, true);
+    }
+}
+
+function downloadExportBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function setExportStatus(message, isError = false) {
+    const status = document.getElementById("exportStatus");
+    status.textContent = message;
+    status.style.color = isError ? "#b02a37" : "#555";
+}
+
+function exportPointsJson() {
+    try {
+        const documentData = createUpdatedPointsDocument();
+        const json = JSON.stringify(documentData, null, 2);
+        downloadExportBlob(new Blob([json], { type: "application/json;charset=utf-8" }), "punkty_zaktualizowane.json");
+        setExportStatus("Pobrano JSON z zapisanymi kątami i przesunięciami.");
+    } catch (e) {
+        console.error("Nie udało się wyeksportować punktów do JSON:", e);
+        setExportStatus(`Nie udało się utworzyć pliku JSON: ${e.message}`, true);
+    }
+}
+
+function exportPointsXlsx() {
+    if (!window.XLSX) {
+        setExportStatus("Nie załadowała się biblioteka XLSX. Sprawdź połączenie z internetem i odśwież stronę.", true);
+        return;
+    }
+
+    try {
+        const documentData = createUpdatedPointsDocument();
+        const points = getExportPointsArray(documentData);
+        const rows = points.map((point, index) => {
+            const pointId = getExportPointId(point, index);
+            const livePoint = pointsMap.get(pointId);
+            const localOffset = pointPositionOverrides[pointId];
+            const offsetX = localOffset ? localOffset.x : Number(point.przesuniecieX) || 0;
+            const offsetY = localOffset ? localOffset.y : Number(point.przesuniecieY) || 0;
+            const angle = Object.prototype.hasOwnProperty.call(pointRotationOverrides, pointId)
+                ? pointRotationOverrides[pointId]
+                : point.kat ?? (livePoint && (livePoint.rotationOverride ?? livePoint.automaticRouteAngle));
+            return {
+                "Typ": point.typ || "",
+                "Numer": point.numer || "",
+                "Sektor": point.sektor || "",
+                "Liczba osób": point.liczba_osob ?? "",
+                "Telefon": point.telefon || "",
+                "Uwagi": point.uwagi || "",
+                "Adres": point.adres || "",
+                "Szerokość": point.lat ?? "",
+                "Długość": point.lng ?? "",
+                "Kąt (stopnie)": angle !== null && angle !== undefined && Number.isFinite(Number(angle)) ? Number(angle) : "",
+                "Przesunięcie X (px)": offsetX,
+                "Przesunięcie Y (px)": offsetY
+            };
+        });
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        worksheet["!cols"] = [
+            { wch: 26 }, { wch: 16 }, { wch: 20 }, { wch: 14 },
+            { wch: 18 }, { wch: 30 }, { wch: 45 }, { wch: 16 },
+            { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 22 }
+        ];
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Punkty");
+        XLSX.writeFile(workbook, "punkty_zaktualizowane.xlsx");
+        setExportStatus("Pobrano XLSX z punktami, kątami i przesunięciami.");
+    } catch (e) {
+        console.error("Nie udało się wyeksportować punktów do XLSX:", e);
+        setExportStatus(`Nie udało się utworzyć pliku XLSX: ${e.message}`, true);
+    }
+}
+
+document.getElementById("rotationPointSelect").addEventListener("change", handleRotationPointChange);
+document.getElementById("saveRotationBtn").addEventListener("click", saveSelectedPointRotation);
+document.getElementById("flipRotation180Btn").addEventListener("click", flipSelectedPointRotation180);
+document.getElementById("resetRotationBtn").addEventListener("click", resetSelectedPointRotation);
+document.getElementById("savePositionBtn").addEventListener("click", saveSelectedPointPosition);
+document.getElementById("resetPositionBtn").addEventListener("click", resetSelectedPointPosition);
+document.getElementById("autoAlignBarriersBtn").addEventListener("click", autoAlignBarriersAndTapes);
+document.getElementById("importPointsJsonBtn").addEventListener("click", importPointsJson);
+document.getElementById("exportPointsJsonBtn").addEventListener("click", exportPointsJson);
+document.getElementById("exportPointsXlsxBtn").addEventListener("click", exportPointsXlsx);
+
+function updateStats() {
+    let counts = {};
+    Object.keys(CONFIG_TYPES).forEach(type => { counts[type] = 0; });
+    pointsMap.forEach(p => { if (counts.hasOwnProperty(p.typ)) counts[p.typ]++; });
+
+    let html = "";
+    for (const [type, count] of Object.entries(counts)) {
+        html += `<tr><td>${type}</td><td><b>${count > 0 ? count : 'brak'}</b></td></tr>`;
+    }
+    document.getElementById("statTableBody").innerHTML = html;
+}
+
+// ---------- GENERATOR ATLASU OPERACYJNEGO ----------
+const ATLAS = {
+    MAP_W_PX: 1047,
+    MAP_H_PX: 510,
+    MM_PER_PX: 0.2645833,
+    FIT_RATIO: 0.9,
+    SAMPLE_KM: 0.01,
+    OVERLAP_SAMPLES: 4,
+    ICON_HALF_PX: 30,
+    ICON_GAP_PX: 2,
+    ICON_OFFSET_MAX_PX: 4,
+    EDGE_PX: 20,
+    OFFROUTE_MAX_M: 1500,
+    PAGES_PER_FILE: 40,
+    MAX_PAGES: 5000
+};
+
+function collectCoords(layer) {
+    const out = [];
+    const valid = c => Array.isArray(c) && c.length >= 2 && Number.isFinite(c[0]) && Number.isFinite(c[1]);
+    layer.toGeoJSON().features.forEach(f => {
+        if (!f.geometry) return;
+        if (f.geometry.type === 'LineString') {
+            f.geometry.coordinates.forEach(c => { if (valid(c)) out.push([c[0], c[1]]); });
+        } else if (f.geometry.type === 'MultiLineString') {
+            f.geometry.coordinates.forEach(seg => seg.forEach(c => { if (valid(c)) out.push([c[0], c[1]]); }));
+        }
+    });
+    return out;
+}
+
+function sampleRoute(coords) {
+    const cum = [0];
+    for (let i = 1; i < coords.length; i++) {
+        cum.push(cum[i - 1] + turf.distance(coords[i - 1], coords[i], { units: 'kilometers' }));
+    }
+    const total = cum[cum.length - 1];
+    const samples = [];
+    let k = 0;
+    for (let d = 0; d < total; d += ATLAS.SAMPLE_KM) {
+        while (k < coords.length - 2 && cum[k + 1] < d) k++;
+        const seg = cum[k + 1] - cum[k];
+        const t = seg > 0 ? (d - cum[k]) / seg : 0;
+        samples.push({
+            km: d,
+            lng: coords[k][0] + (coords[k + 1][0] - coords[k][0]) * t,
+            lat: coords[k][1] + (coords[k + 1][1] - coords[k][1]) * t
+        });
+    }
+    const last = coords[coords.length - 1];
+    samples.push({ km: total, lng: last[0], lat: last[1] });
+    return { samples, total };
+}
+
+function planPages(samples, fitW, fitH) {
+    const extend = (b, s) => ({
+        minLat: Math.min(b.minLat, s.lat), maxLat: Math.max(b.maxLat, s.lat),
+        minLng: Math.min(b.minLng, s.lng), maxLng: Math.max(b.maxLng, s.lng)
+    });
+    const empty = () => ({ minLat: Infinity, maxLat: -Infinity, minLng: Infinity, maxLng: -Infinity });
+    const spanM = b => {
+        const midLat = (b.minLat + b.maxLat) / 2;
+        return {
+            w: (b.maxLng - b.minLng) * 111320 * Math.cos(midLat * Math.PI / 180),
+            h: (b.maxLat - b.minLat) * 110574
+        };
+    };
+
+    const pages = [];
+    let i = 0;
+    while (pages.length < ATLAS.MAX_PAGES) {
+        let b = empty();
+        let j = i;
+        for (let q = i; q < samples.length; q++) {
+            const nb = extend(b, samples[q]);
+            const s = spanM(nb);
+            if (s.w > fitW || s.h > fitH) break;
+            b = nb;
+            j = q;
+        }
+        pages.push({
+            startKm: samples[i].km,
+            endKm: samples[j].km,
+            center: [(b.minLat + b.maxLat) / 2, (b.minLng + b.maxLng) / 2]
+        });
+        if (j >= samples.length - 1) break;
+        i = Math.max(i + 1, j - ATLAS.OVERLAP_SAMPLES);
+    }
+    return pages;
+}
+
+const ATLAS_MARKER_STYLE = {
+    "Służba informacyjna":      { bg: null, border: null },
+    "Taśma":                    { bg: null, border: null },
+    "Służba porządkowa":        { bg: null, border: null },
+    "Służba kierowania ruchem": { bg: null, border: null },
+    "Medyczny":                 { bg: "#28a745", border: "#ffffff" },
+    "Barierki":                 { bg: null, border: null },
+    "Toaleta":                  { bg: "#6f42c1", border: "#ffffff" },
+    "Punkt żywieniowy":         { bg: "#ffffff", border: "#007bff" },
+    "Sędzia":                   { bg: "#e0a800", border: "#ffffff" },
+    "Śluza":                    { bg: null, border: null }
+};
+const ATLAS_MARKER_R_PX = 14;
+const ATLAS_MARKER_ICON_PX = 16;
+const ATLAS_LARGE_ICON_TYPES = ["Taśma", "Służba porządkowa", "Służba kierowania ruchem", "Służba informacyjna", "Barierki", "Śluza"];
+const ATLAS_ICON_SIZES = {
+    "Barierki": { width: 30, height: 11.52 },
+    "Taśma": { width: 30, height: 12 },
+    "Śluza": { width: 40, height: 20 }
+};
+
+async function prepareAtlasIcons() {
+    const icons = {};
+    await Promise.all(Object.keys(CONFIG_TYPES).map(type => new Promise(resolve => {
+        const svg = (CONFIG_TYPES[type].svgContent || "").replace(/width='16' height='16'/, "width='96' height='96'");
+        const img = new Image();
+        img.onload = () => { icons[type] = img; resolve(); };
+        img.onerror = () => { console.warn("Nie udało się wczytać ikony dla typu:", type); icons[type] = null; resolve(); };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    })));
+    return icons;
+}
+
+function drawAtlasMarker(ctx, x, y, k, type, icons, routeAngle = null) {
+    const st = ATLAS_MARKER_STYLE[type] || { bg: "#ffffff", border: "#333333" };
+    const r = ATLAS_MARKER_R_PX * k;
+
+    if (st.bg && st.border) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = 4 * k;
+        ctx.shadowOffsetY = 1 * k;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = st.bg;
+        ctx.fill();
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.arc(x, y, r - 1 * k, 0, Math.PI * 2);
+        ctx.lineWidth = 2 * k;
+        ctx.strokeStyle = st.border;
+        ctx.stroke();
+    }
+
+    const img = icons[type];
+    if (img) {
+        const iconSize = ATLAS_ICON_SIZES[type] || {
+            width: ATLAS_LARGE_ICON_TYPES.includes(type) ? 20 : ATLAS_MARKER_ICON_PX,
+            height: ATLAS_LARGE_ICON_TYPES.includes(type) ? 20 : ATLAS_MARKER_ICON_PX
+        };
+        const iconWidth = iconSize.width * k, iconHeight = iconSize.height * k;
+        if ((type === "Śluza" || type === "Taśma" || type === "Barierki") && Number.isFinite(routeAngle)) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(routeAngle * Math.PI / 180);
+            ctx.drawImage(img, -iconWidth / 2, -iconHeight / 2, iconWidth, iconHeight);
+            ctx.restore();
+            return;
+        }
+        ctx.drawImage(img, x - iconWidth / 2, y - iconHeight / 2, iconWidth, iconHeight);
+    }
+}
+
+function getAtlasIconRadius(type) {
+    const size = ATLAS_ICON_SIZES[type] || {
+        width: ATLAS_LARGE_ICON_TYPES.includes(type) ? 20 : ATLAS_MARKER_ICON_PX,
+        height: ATLAS_LARGE_ICON_TYPES.includes(type) ? 20 : ATLAS_MARKER_ICON_PX
+    };
+    return Math.hypot(size.width, size.height) / 2;
+}
+
+function distanceToAtlasSegment(point, segment) {
+    const dx = segment.end.x - segment.start.x;
+    const dy = segment.end.y - segment.start.y;
+    const lengthSquared = dx * dx + dy * dy;
+    if (!lengthSquared) return Math.hypot(point.x - segment.start.x, point.y - segment.start.y);
+
+    const t = Math.max(0, Math.min(1,
+        ((point.x - segment.start.x) * dx + (point.y - segment.start.y) * dy) / lengthSquared
+    ));
+    return Math.hypot(
+        point.x - (segment.start.x + t * dx),
+        point.y - (segment.start.y + t * dy)
+    );
+}
+
+function layoutAtlasServiceIcons(routes, world, tlx, tly, W, H) {
+    const movableTypes = new Set(["Służba porządkowa", "Służba informacyjna", "Służba kierowania ruchem"]);
+    const points = [];
+    pointsMap.forEach(point => {
+        if (!activeFilters[point.typ]) return;
+        const projected = mercNorm(point.lat, point.lng);
+        const x = projected.x * world - tlx;
+        const y = projected.y * world - tly;
+        const half = ATLAS.ICON_HALF_PX;
+        if (x < -half || x > W + half || y < -half || y > H + half) return;
+        const radius = getAtlasIconRadius(point.typ);
+        points.push({
+            point,
+            x,
+            y,
+            radius,
+            movable: movableTypes.has(point.typ)
+        });
+    });
+
+    const routeSegments = [];
+    routes.forEach(route => route.segs.forEach(line => {
+        for (let i = 1; i < line.length; i++) {
+            routeSegments.push({
+                start: { x: line[i - 1].x * world - tlx, y: line[i - 1].y * world - tly },
+                end: { x: line[i].x * world - tlx, y: line[i].y * world - tly }
+            });
+        }
     }));
 
-    const wsPoints = XLSX.utils.json_to_sheet(rows.length ? rows : [{
-        "Numer": "", "Typ": "", "Sektor": "", "Liczba osób": 0, "Telefon": "", "Adres": "", "Uwagi": "", "Kąt": "", "Przesunięcie X": "", "Przesunięcie Y": "", "Szerokość (lat)": "", "Długość (lng)": ""
-    }]);
+    const positions = new Map();
+    const fixedPoints = points.filter(item =>
+        !item.movable && item.point.typ !== "Śluza" && item.point.typ !== "Barierki"
+    );
+    const placedPoints = [];
+    const targets = points.filter(item => item.movable)
+        .sort((a, b) => String(a.point.numerRaw).localeCompare(String(b.point.numerRaw), "pl"));
+    let unresolved = 0;
+    const maxOffset = ATLAS.ICON_OFFSET_MAX_PX;
+    const gap = ATLAS.ICON_GAP_PX;
+    const routeHalfWidth = 2.5;
 
-    const statRows = Object.keys(CONFIG_TYPES).map(t => {
-        const matching = points.filter(p => p.typ === t);
-        return {
-            "Typ": t,
-            "Ilość": matching.length,
-            "Obsada (os.)": matching.reduce((acc, p) => acc + (Number(p.liczba_osob) || 0), 0)
-        };
+    targets.forEach(target => {
+        const origin = { x: target.x, y: target.y };
+        const routeCandidates = routeSegments.filter(segment =>
+            Math.max(segment.start.x, segment.end.x) >= origin.x - maxOffset - target.radius - routeHalfWidth - gap &&
+            Math.min(segment.start.x, segment.end.x) <= origin.x + maxOffset + target.radius + routeHalfWidth + gap &&
+            Math.max(segment.start.y, segment.end.y) >= origin.y - maxOffset - target.radius - routeHalfWidth - gap &&
+            Math.min(segment.start.y, segment.end.y) <= origin.y + maxOffset + target.radius + routeHalfWidth + gap
+        );
+        const obstacles = fixedPoints.concat(placedPoints).filter(item =>
+            Math.hypot(item.x - origin.x, item.y - origin.y) <=
+            maxOffset + target.radius + item.radius + gap
+        );
+
+        let preferredAngle = 0;
+        let closestDistance = Infinity;
+        let preferredNormal = null;
+        routeCandidates.forEach(segment => {
+            const dx = segment.end.x - segment.start.x;
+            const dy = segment.end.y - segment.start.y;
+            const lengthSquared = dx * dx + dy * dy;
+            if (!lengthSquared) return;
+            const t = Math.max(0, Math.min(1,
+                ((origin.x - segment.start.x) * dx + (origin.y - segment.start.y) * dy) / lengthSquared
+            ));
+            const closest = { x: segment.start.x + t * dx, y: segment.start.y + t * dy };
+            const offset = { x: origin.x - closest.x, y: origin.y - closest.y };
+            const distance = Math.hypot(offset.x, offset.y);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                const normalLength = Math.hypot(dx, dy);
+                const normal = { x: -dy / normalLength, y: dx / normalLength };
+                const side = offset.x * normal.x + offset.y * normal.y < 0 ? -1 : 1;
+                preferredNormal = { x: normal.x * side, y: normal.y * side };
+            }
+        });
+        if (preferredNormal) preferredAngle = Math.atan2(preferredNormal.y, preferredNormal.x);
+
+        const isClear = candidate =>
+            candidate.x >= target.radius + gap &&
+            candidate.x <= W - target.radius - gap &&
+            candidate.y >= target.radius + gap &&
+            candidate.y <= H - target.radius - gap &&
+            routeCandidates.every(segment =>
+                distanceToAtlasSegment(candidate, segment) >= target.radius + routeHalfWidth + gap
+            ) &&
+            obstacles.every(item =>
+                Math.hypot(candidate.x - item.x, candidate.y - item.y) >= target.radius + item.radius + gap
+            );
+
+        let placement = null;
+        for (let radius = 0; radius <= maxOffset && !placement; radius += 1) {
+            const steps = radius === 0 ? 1 : Math.max(16, Math.ceil(2 * Math.PI * radius / 2));
+            for (let step = 0; step < steps; step++) {
+                const angle = preferredAngle + step * 2 * Math.PI / steps;
+                const candidate = {
+                    x: origin.x + Math.cos(angle) * radius,
+                    y: origin.y + Math.sin(angle) * radius
+                };
+                if (isClear(candidate)) {
+                    placement = candidate;
+                    break;
+                }
+            }
+        }
+
+        if (placement) {
+            positions.set(target.point.id, placement);
+            placedPoints.push({ ...target, ...placement });
+        } else {
+            unresolved++;
+            placedPoints.push(target);
+        }
     });
-    const wsStats = XLSX.utils.json_to_sheet(statRows);
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, wsPoints, "Punkty");
-    XLSX.utils.book_append_sheet(wb, wsStats, "Statystyki");
-
-    const safeName = (projectName || "projekt").toLowerCase().replace(/\s+/g, "_");
-    XLSX.writeFile(wb, `${safeName}_zabezpieczenie.xlsx`);
+    return { positions, unresolved };
 }
 
-function importExcel(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+function newPdf() {
+    const { jsPDF } = window.jspdf;
+    return new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+}
 
-    if (typeof XLSX === "undefined") {
-        alert("Biblioteka SheetJS (XLSX) nie została załadowana.");
+function drawPageFooter(pdf, mapWidthMm, routeKey, page, pageNo, pageTotal, summary, edgeNotes, scale) {
+    const tableX = 10, tableY = 148, tableW = mapWidthMm;
+    const headerH = 14, bodyH = 26, notesH = 9;
+    const tableH = headerH + bodyH + notesH;
+    const bodyEnd = tableY + headerH + bodyH;
+    const midX = tableX + tableW / 2;
+
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.2);
+    if (page.extra) pdf.setFillColor(255, 214, 214); else pdf.setFillColor(235, 235, 235);
+    pdf.rect(tableX, tableY, tableW, headerH, 'F');
+    pdf.rect(tableX, tableY, tableW, tableH);
+    pdf.line(tableX, tableY + 7, tableX + tableW, tableY + 7);
+    pdf.line(midX, tableY, midX, tableY + headerH);
+    pdf.line(tableX, tableY + headerH, tableX + tableW, tableY + headerH);
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9.5);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(removePolishDiacritics(`TRASA ${routeKey}`), tableX + 4, tableY + 5);
+    pdf.text(`Skala: 1 : ${scale.toLocaleString("pl-PL")}`, midX + 4, tableY + 5);
+    const segmentText = page.extra
+        ? `POZA TRASA: przy km ${page.startKm.toFixed(2)} (ok. ${Math.round(page.distM)} m od trasy)`
+        : `Odcinek: ${page.startKm.toFixed(2)} km - ${page.endKm.toFixed(2)} km`;
+    pdf.text(removePolishDiacritics(segmentText), tableX + 4, tableY + 11.5);
+    pdf.text(`Mapa ${pageNo} / ${pageTotal}`, midX + 4, tableY + 11.5);
+
+    const entries = Object.entries(summary);
+    const rows = Math.max(1, Math.ceil(entries.length / 2));
+    const bodyStart = tableY + headerH;
+    const columnHeaderH = 5;
+    const rowsStart = bodyStart + columnHeaderH;
+    const rowH = (bodyH - columnHeaderH) / rows;
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8.5);
+    pdf.line(midX, bodyStart, midX, bodyEnd);
+
+    const blockW = tableW / 2;
+    const countSplitX1 = tableX + blockW * 0.75;
+    const countSplitX2 = midX + blockW * 0.75;
+    pdf.setDrawColor(210, 210, 210);
+    pdf.line(countSplitX1, bodyStart, countSplitX1, bodyEnd);
+    pdf.line(countSplitX2, bodyStart, countSplitX2, bodyEnd);
+    pdf.setDrawColor(0, 0, 0);
+    pdf.line(tableX, rowsStart, tableX + tableW, rowsStart);
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7);
+    pdf.text("Nazwa punktu", tableX + 3, bodyStart + 3.5);
+    pdf.text("Liczba", countSplitX1 + 2, bodyStart + 3.5);
+    pdf.text("Nazwa punktu", midX + 3, bodyStart + 3.5);
+    pdf.text("Liczba", countSplitX2 + 2, bodyStart + 3.5);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8.5);
+
+    for (let i = 0; i < rows; i++) {
+        const rowY = rowsStart + i * rowH + Math.min(3.2, rowH - 1);
+        if (i > 0) {
+            pdf.setDrawColor(230, 230, 230);
+            pdf.line(tableX, rowsStart + i * rowH, tableX + tableW, rowsStart + i * rowH);
+        }
+        if (entries[i]) {
+            const [type, count] = entries[i];
+            pdf.text(type, tableX + 3, rowY);
+            pdf.text(count > 0 ? String(count) : "brak", countSplitX1 + 3, rowY);
+        }
+        if (entries[i + rows]) {
+            const [type, count] = entries[i + rows];
+            pdf.text(type, midX + 3, rowY);
+            pdf.text(count > 0 ? String(count) : "brak", countSplitX2 + 3, rowY);
+        }
+    }
+
+    pdf.setDrawColor(0, 0, 0);
+    pdf.line(tableX, bodyEnd, tableX + tableW, bodyEnd);
+    pdf.setFillColor(255, 243, 205);
+    pdf.rect(tableX, bodyEnd, tableW, notesH, 'F');
+    pdf.rect(tableX, bodyEnd, tableW, notesH);
+
+    const notesText = edgeNotes.length === 0
+        ? "Uwagi: brak punktow na granicy kadru."
+        : `Uwagi - punkty na granicy kadru, moga byc ucieta lub widoczne na sasiedniej stronie (${edgeNotes.length}): ${edgeNotes.join("; ")}`;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(0, 0, 0);
+    let lines = pdf.splitTextToSize(removePolishDiacritics(notesText), tableW - 6);
+    if (lines.length > 2) {
+        lines = lines.slice(0, 2);
+        lines[1] = lines[1].replace(/.{0,6}$/, "") + " ... (pelna lista: zob. mape)";
+    }
+    pdf.text(lines, tableX + 3, bodyEnd + 3.6);
+
+    pdf.setFontSize(7);
+    pdf.setTextColor(90, 90, 90);
+    pdf.text("Dane mapy: (c) OpenStreetMap contributors. Kilometraz liczony z pliku GPX - orientacyjny, nie zastepuje pomiaru atestowanego.", tableX, tableY + tableH + 5);
+    pdf.setTextColor(0, 0, 0);
+}
+
+function mercNorm(lat, lng) {
+    const s = Math.sin(lat * Math.PI / 180);
+    return { x: (lng + 180) / 360, y: 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI) };
+}
+
+function collectSegments(layer) {
+    const valid = c => Array.isArray(c) && c.length >= 2 && Number.isFinite(c[0]) && Number.isFinite(c[1]);
+    const segs = [];
+    layer.toGeoJSON().features.forEach(f => {
+        if (!f.geometry) return;
+        if (f.geometry.type === 'LineString') {
+            segs.push(f.geometry.coordinates.filter(valid));
+        } else if (f.geometry.type === 'MultiLineString') {
+            f.geometry.coordinates.forEach(s => segs.push(s.filter(valid)));
+        }
+    });
+    return segs.filter(s => s.length >= 2);
+}
+
+const atlasTileCache = new Map();
+function loadAtlasTile(z, x, y) {
+    const n = Math.pow(2, z);
+    const xx = ((x % n) + n) % n;
+    if (y < 0 || y >= n) return Promise.resolve(null);
+    const key = `${z}/${xx}/${y}`;
+    if (atlasTileCache.has(key)) return atlasTileCache.get(key);
+
+    const sub = 'abc'[(xx + y) % 3];
+    const p = new Promise(resolve => {
+        let tries = 0;
+        const attempt = () => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = () => {
+                tries++;
+                if (tries < 3) setTimeout(attempt, 400 * tries);
+                else { atlasTileCache.delete(key); resolve(null); }
+            };
+            img.src = `https://${sub}.tile.openstreetmap.org/${key}.png` + (tries ? `?r=${tries}` : '');
+        };
+        attempt();
+    });
+    atlasTileCache.set(key, p);
+    if (atlasTileCache.size > 500) atlasTileCache.delete(atlasTileCache.keys().next().value);
+    return p;
+}
+
+async function drawAtlasBasemap(ctx, k, zf, tlx, tly, W, H) {
+    const zt = Math.min(19, Math.max(0, Math.round(zf + 1)));
+    const tileSize = 256 * Math.pow(2, zf - zt);
+    const x0 = Math.floor(tlx / tileSize), x1 = Math.floor((tlx + W) / tileSize);
+    const y0 = Math.floor(tly / tileSize), y1 = Math.floor((tly + H) / tileSize);
+
+    const jobs = [];
+    for (let ty = y0; ty <= y1; ty++) {
+        for (let tx = x0; tx <= x1; tx++) {
+            jobs.push(loadAtlasTile(zt, tx, ty).then(img => ({ img, tx, ty })));
+        }
+    }
+    const tiles = await Promise.all(jobs);
+
+    ctx.fillStyle = '#e5e5e5';
+    ctx.fillRect(0, 0, W * k, H * k);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    let missing = 0;
+    tiles.forEach(({ img, tx, ty }) => {
+        if (!img) { missing++; return; }
+        const dx = (tx * tileSize - tlx) * k, dy = (ty * tileSize - tly) * k;
+        ctx.drawImage(img, dx, dy, tileSize * k + 0.5, tileSize * k + 0.5);
+    });
+    return missing;
+}
+
+function drawAtlasRoutes(ctx, k, routes, world, tlx, tly, W, H) {
+    const M = 12;
+    routes.forEach(r => {
+        ctx.strokeStyle = r.color;
+        ctx.lineWidth = 5 * k;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        r.segs.forEach(seg => {
+            let prev = null, pen = false;
+            for (let i = 0; i < seg.length; i++) {
+                const px = seg[i].x * world - tlx, py = seg[i].y * world - tly;
+                if (prev) {
+                    const out = (px < -M && prev.x < -M) || (px > W + M && prev.x > W + M) ||
+                                (py < -M && prev.y < -M) || (py > H + M && prev.y > H + M);
+                    if (!out) {
+                        if (!pen) { ctx.moveTo(prev.x * k, prev.y * k); pen = true; }
+                        ctx.lineTo(px * k, py * k);
+                    } else pen = false;
+                }
+                prev = { x: px, y: py };
+            }
+        });
+        ctx.stroke();
+
+        r.segs.forEach(seg => {
+            let distanceToNextArrow = 180 * k;
+            for (let i = 1; i < seg.length; i++) {
+                const start = {
+                    x: (seg[i - 1].x * world - tlx) * k,
+                    y: (seg[i - 1].y * world - tly) * k
+                };
+                const end = {
+                    x: (seg[i].x * world - tlx) * k,
+                    y: (seg[i].y * world - tly) * k
+                };
+                const dx = end.x - start.x, dy = end.y - start.y;
+                const length = Math.hypot(dx, dy);
+                if (!length) continue;
+
+                let traversed = 0;
+                while (traversed + distanceToNextArrow <= length) {
+                    traversed += distanceToNextArrow;
+                    const x = start.x + dx * traversed / length;
+                    const y = start.y + dy * traversed / length;
+                    if (x >= 0 && x <= W * k && y >= 0 && y <= H * k) {
+                        ctx.save();
+                        ctx.translate(x, y);
+                        ctx.rotate(Math.atan2(dy, dx));
+                        ctx.beginPath();
+                        ctx.moveTo(-12 * k, -7.5 * k);
+                        ctx.lineTo(12 * k, 0);
+                        ctx.lineTo(-12 * k, 7.5 * k);
+                        ctx.lineTo(-6 * k, 0);
+                        ctx.closePath();
+                        ctx.fillStyle = r.color;
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                    distanceToNextArrow = 180 * k;
+                }
+                distanceToNextArrow -= length - traversed;
+            }
+        });
+    });
+}
+
+function bboxExtend(b, lat, lng) {
+    return {
+        minLat: Math.min(b.minLat, lat), maxLat: Math.max(b.maxLat, lat),
+        minLng: Math.min(b.minLng, lng), maxLng: Math.max(b.maxLng, lng)
+    };
+}
+function bboxSpanM(b) {
+    const midLat = (b.minLat + b.maxLat) / 2;
+    return {
+        w: (b.maxLng - b.minLng) * 111320 * Math.cos(midLat * Math.PI / 180),
+        h: (b.maxLat - b.minLat) * 110574
+    };
+}
+
+function atlasFrame(center, metersPerPx) {
+    const zf = Math.log2((156543.03392 * Math.cos(center[0] * Math.PI / 180)) / metersPerPx);
+    const world = 256 * Math.pow(2, zf);
+    const c = mercNorm(center[0], center[1]);
+    return { zf, world, tlx: c.x * world - ATLAS.MAP_W_PX / 2, tly: c.y * world - ATLAS.MAP_H_PX / 2 };
+}
+
+function nearestOnRoute(samples, lat, lng) {
+    const cosLat = Math.cos(lat * Math.PI / 180);
+    let best = Infinity, bestKm = 0;
+    for (let i = 0; i < samples.length; i++) {
+        const dx = (lng - samples[i].lng) * cosLat;
+        const dy = lat - samples[i].lat;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < best) { best = d2; bestKm = samples[i].km; }
+    }
+    return { km: bestKm, distM: Math.sqrt(best) * 111320 };
+}
+
+function planOffRoutePages(samples, routePages, fitW, fitH, metersPerPx) {
+    const W = ATLAS.MAP_W_PX, H = ATLAS.MAP_H_PX, inset = ATLAS.EDGE_PX;
+    const frames = routePages.map(pg => atlasFrame(pg.center, metersPerPx));
+    const cand = [];
+    let tooFar = 0;
+
+    pointsMap.forEach(p => {
+        if (!activeFilters[p.typ]) return;
+        const n = mercNorm(p.lat, p.lng);
+        const covered = frames.some(f => {
+            const x = n.x * f.world - f.tlx, y = n.y * f.world - f.tly;
+            return x >= inset && x <= W - inset && y >= inset && y <= H - inset;
+        });
+        if (covered) return;
+
+        const nr = nearestOnRoute(samples, p.lat, p.lng);
+        if (nr.distM > ATLAS.OFFROUTE_MAX_M) { tooFar++; return; }
+        cand.push({ p, km: nr.km, distM: nr.distM });
+    });
+
+    cand.sort((a, b) => a.km - b.km);
+
+    const clusters = [];
+    cand.forEach(c => {
+        for (const cl of clusters) {
+            const nb = bboxExtend(cl.bbox, c.p.lat, c.p.lng);
+            const s = bboxSpanM(nb);
+            if (s.w <= fitW && s.h <= fitH) {
+                cl.bbox = nb; cl.items.push(c);
+                return;
+            }
+        }
+        clusters.push({ bbox: bboxExtend({ minLat: Infinity, maxLat: -Infinity, minLng: Infinity, maxLng: -Infinity }, c.p.lat, c.p.lng), items: [c] });
+    });
+
+    const pages = clusters.map(cl => ({
+        extra: true,
+        startKm: Math.min(...cl.items.map(i => i.km)),
+        endKm: Math.max(...cl.items.map(i => i.km)),
+        distM: Math.min(...cl.items.map(i => i.distM)),
+        center: [(cl.bbox.minLat + cl.bbox.maxLat) / 2, (cl.bbox.minLng + cl.bbox.maxLng) / 2]
+    }));
+    return { pages, tooFar };
+}
+
+function mergeAtlasPages(routePages, extraPages) {
+    const items = routePages.map(p => ({ p, key: p.startKm, order: 0 }))
+        .concat(extraPages.map(p => ({ p, key: p.startKm, order: 1 })));
+    items.sort((a, b) => (a.key - b.key) || (a.order - b.order));
+    return items.map(i => i.p);
+}
+
+function getAtlasPointMapPages(pages, metersPerPx) {
+    const mapPagesByPoint = new Map();
+    const excludedTypes = new Set(["Taśma", "Barierki"]);
+    const half = ATLAS.ICON_HALF_PX, W = ATLAS.MAP_W_PX, H = ATLAS.MAP_H_PX;
+    const frames = pages.map(page => atlasFrame(page.center, metersPerPx));
+
+    pointsMap.forEach(point => {
+        if (!activeFilters[point.typ] || excludedTypes.has(point.typ)) return;
+        const projected = mercNorm(point.lat, point.lng);
+        const offset = point.positionOffset || { x: 0, y: 0 };
+        const visiblePages = [];
+        frames.forEach((frame, index) => {
+            const x = projected.x * frame.world - frame.tlx + offset.x;
+            const y = projected.y * frame.world - frame.tly + offset.y;
+            if (x >= -half && x <= W + half && y >= -half && y <= H + half) {
+                visiblePages.push(index + 1);
+            }
+        });
+        if (visiblePages.length) mapPagesByPoint.set(point.id, visiblePages);
+    });
+
+    return mapPagesByPoint;
+}
+
+function addAtlasPointIndex(pdf, routeKey, page, mapPageNumber, metersPerPx, mapPagesByPoint) {
+    const frame = atlasFrame(page.center, metersPerPx);
+    const rows = [];
+    const excludedTypes = new Set(["Taśma", "Barierki"]);
+    const half = ATLAS.ICON_HALF_PX, W = ATLAS.MAP_W_PX, H = ATLAS.MAP_H_PX;
+
+    pointsMap.forEach(point => {
+        if (!activeFilters[point.typ] || excludedTypes.has(point.typ)) return;
+        const projected = mercNorm(point.lat, point.lng);
+        const offset = point.positionOffset || { x: 0, y: 0 };
+        const x = projected.x * frame.world - frame.tlx + offset.x;
+        const y = projected.y * frame.world - frame.tly + offset.y;
+        if (x >= -half && x <= W + half && y >= -half && y <= H + half) {
+            const visiblePages = mapPagesByPoint.get(point.id) || [mapPageNumber];
+            const row = [
+                removePolishDiacritics(`${point.typ} - ${point.numerRaw}`),
+                visiblePages.join(", ")
+            ];
+            if (routeKey === "HM") row.push(removePolishDiacritics(point.uwagi || ""));
+            else row.push(
+                removePolishDiacritics(point.adres || "Adres nieustalony"),
+                removePolishDiacritics(point.uwagi || "")
+            );
+            rows.push(row);
+        }
+    });
+
+    rows.sort((a, b) => a[0].localeCompare(b[0], "pl"));
+
+    const pageWidth = 297, marginX = 10, tableWidth = pageWidth - marginX * 2;
+    const columnWidths = routeKey === "HM"
+        ? [tableWidth * 0.48, tableWidth * 0.20, tableWidth * 0.32]
+        : [tableWidth * 0.30, tableWidth * 0.16, tableWidth * 0.27, tableWidth * 0.27];
+    const columnTitles = routeKey === "HM"
+        ? ["Punkt", "Widoczne na mapach", "Uwagi"]
+        : ["Punkt", "Widoczne na mapach", "Adres", "Uwagi"];
+    const lineHeight = 4.2, headerY = 26, headerHeight = 9, bottomY = 198;
+    let y;
+    let appendixPage = 0;
+
+    const startAppendixPage = () => {
+        pdf.addPage();
+        appendixPage++;
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(13);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(
+            `Indeks punktow - trasa ${routeKey} - mapa ${mapPageNumber}${appendixPage > 1 ? " (ciag dalszy)" : ""}`,
+            marginX,
+            17
+        );
+
+        let x = marginX;
+        pdf.setFillColor(235, 235, 235);
+        pdf.setDrawColor(0, 0, 0);
+        pdf.setLineWidth(0.2);
+        columnTitles.forEach((title, index) => {
+            pdf.setFillColor(235, 235, 235);
+            pdf.rect(x, headerY, columnWidths[index], headerHeight, "FD");
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(8.5);
+            pdf.setTextColor(0, 0, 0);
+            pdf.text(title, x + 2, headerY + 5.8);
+            x += columnWidths[index];
+        });
+        if (routeKey !== "HM") {
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(6.5);
+            pdf.setTextColor(90, 90, 90);
+            pdf.text("Adresy: OpenStreetMap contributors, ODbL - www.openstreetmap.org/copyright", marginX, 205);
+            pdf.setTextColor(0, 0, 0);
+        }
+        y = headerY + headerHeight;
+    };
+
+    startAppendixPage();
+    if (!rows.length) {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+        pdf.text("Brak punktow do wyswietlenia.", marginX + 2, y + 6);
         return;
     }
 
-    const reader = new FileReader();
-    reader.onload = e => {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: "array" });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const jsonRows = XLSX.utils.sheet_to_json(worksheet);
+    rows.forEach(row => {
+        const wrapped = row.map((text, index) =>
+            pdf.splitTextToSize(text, columnWidths[index] - 4)
+        );
+        const totalLines = Math.max(1, ...wrapped.map(lines => lines.length));
+        let line = 0;
 
-            points.forEach(p => {
-                if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
-            });
-            points = [];
+        while (line < totalLines) {
+            let capacity = Math.floor((bottomY - y - 2) / lineHeight);
+            if (capacity < 1) {
+                startAppendixPage();
+                capacity = Math.floor((bottomY - y - 2) / lineHeight);
+            }
+            const lineCount = Math.min(capacity, totalLines - line);
+            const rowHeight = lineCount * lineHeight + 2;
+            let x = marginX;
 
-            jsonRows.forEach(row => {
-                const lat = Number(row["Szerokość (lat)"] ?? row["Lat"] ?? row["lat"]);
-                const lng = Number(row["Długość (lng)"] ?? row["Lng"] ?? row["lng"]);
-                if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-
-                const rawType = row["Typ"] ?? row["typ"] ?? "Służba informacyjna";
-                const obsVal = parseInt(row["Liczba osób"] ?? row["Obsada"] ?? row["Obsada (os.)"] ?? row["liczba_osob"] ?? 1, 10);
-
-                addPoint(lat, lng, rawType, {
-                    numer: row["Numer"] ?? row["numer"] ?? "",
-                    sektor: row["Sektor"] ?? row["sektor"] ?? "",
-                    liczba_osob: Number.isNaN(obsVal) ? 1 : obsVal,
-                    telefon: row["Telefon"] ?? row["telefon"] ?? "",
-                    adres: row["Adres"] ?? row["adres"] ?? row["Nazwa"] ?? "",
-                    uwagi: row["Uwagi"] ?? row["uwagi"] ?? "",
-                    kat: row["Kąt"] ?? row["kat"],
-                    przesuniecieX: row["Przesunięcie X"] ?? row["przesuniecieX"],
-                    przesuniecieY: row["Przesunięcie Y"] ?? row["przesuniecieY"]
-                }, false);
+            wrapped.forEach((cellLines, index) => {
+                pdf.setDrawColor(180, 180, 180);
+                pdf.setFillColor(255, 255, 255);
+                pdf.rect(x, y, columnWidths[index], rowHeight, "FD");
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(8);
+                pdf.setTextColor(0, 0, 0);
+                const visibleLines = cellLines.slice(line, line + lineCount);
+                if (visibleLines.length) pdf.text(visibleLines, x + 2, y + 3.2);
+                x += columnWidths[index];
             });
 
-            fitMapToProjectBounds();
-            refreshList();
-            updateStats();
-        } catch (err) {
-            alert("Błąd podczas importu pliku XLSX: " + err.message);
+            y += rowHeight;
+            line += lineCount;
+            if (line < totalLines) startAppendixPage();
         }
-    };
-    reader.readAsArrayBuffer(file);
-    event.target.value = "";
+    });
 }
 
-// Inicjalizacja pustych tabel i liczników
-updateStats();
-refreshList();
-updateRouteDistanceUI();
+async function generateRouteAtlas() {
+    const routeKey = document.getElementById("atlasRouteSelect").value;
+    const scaleInput = document.getElementById("atlasScaleInput");
+    const scale = Number(scaleInput.value);
+    const routeConfig = CONFIG_ROUTES[routeKey];
+    const progressDiv = document.getElementById("atlasProgress");
+    const generateBtn = document.getElementById("generateAtlasBtn");
+    const cancelBtn = document.getElementById("cancelAtlasBtn");
+
+    if (![1000, 1500, 2000].includes(scale)) {
+        alert("Wybierz skalę 1:1000, 1:1500 lub 1:2000.");
+        scaleInput.focus();
+        return;
+    }
+
+    if (!routeConfig || !routeConfig.layer || routeConfig.layer.getLayers().length === 0) {
+        alert(`Trasa ${routeKey} nie jest załadowana lub jest pusta!`);
+        return;
+    }
+
+    isAtlasCancelled = false;
+    generateBtn.style.display = "none";
+    cancelBtn.style.display = "block";
+    progressDiv.innerText = "Przygotowywanie i czyszczenie danych trasy...";
+
+    try {
+        const coords = collectCoords(routeConfig.layer);
+        if (coords.length < 2) {
+            throw new Error(`Plik GPX dla trasy ${routeKey} nie zawiera wystarczających współrzędnych.`);
+        }
+
+        const metersPerPx = ATLAS.MM_PER_PX * scale / 1000;
+        const W = ATLAS.MAP_W_PX, H = ATLAS.MAP_H_PX;
+        const fitW = W * metersPerPx * ATLAS.FIT_RATIO;
+        const fitH = H * metersPerPx * ATLAS.FIT_RATIO;
+
+        const { samples, total } = sampleRoute(coords);
+        const routePages = planPages(samples, fitW, fitH);
+        const off = planOffRoutePages(samples, routePages, fitW, fitH, metersPerPx);
+        const pages = mergeAtlasPages(routePages, off.pages);
+        const mapPagesByPoint = getAtlasPointMapPages(pages, metersPerPx);
+        progressDiv.innerText = `Trasa ${total.toFixed(2)} km, map: ${pages.length}; po każdej mapie zostanie dodany indeks` +
+            (off.pages.length ? ` (w tym ${off.pages.length} map z punktami poza trasą)` : '') + `. Start...`;
+
+        const routesToDraw = [];
+        Object.keys(CONFIG_ROUTES).forEach(key => {
+            const chk = document.getElementById(`route_chk_${key}`);
+            if (key !== routeKey && !(chk && chk.checked)) return;
+            const segs = collectSegments(CONFIG_ROUTES[key].layer)
+                .map(seg => seg.map(c => mercNorm(c[1], c[0])));
+            if (segs.length) routesToDraw.push({ key, color: CONFIG_ROUTES[key].color, segs });
+        });
+        routesToDraw.sort((a, b) => (a.key === routeKey) - (b.key === routeKey));
+
+        const atlasIcons = await prepareAtlasIcons();
+
+        const SC = 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = W * SC;
+        canvas.height = H * SC;
+        const ctx = canvas.getContext('2d');
+
+        const mapWidthMm = 297 - 20;
+        const imgHeightMm = 135;
+
+        let pdf = newPdf();
+        let inFile = 0;
+        let part = 1;
+        let missingTotal = 0;
+        let unresolvedLayoutTotal = 0;
+        const multiPart = pages.length > ATLAS.PAGES_PER_FILE;
+        const savePdf = () => {
+            const suffix = multiPart ? `_czesc${part}` : '';
+            pdf.save(`Atlas_Trasy_${routeKey}_skala_1_${scale}${suffix}.pdf`);
+        };
+
+        for (let idx = 0; idx < pages.length; idx++) {
+            if (isAtlasCancelled) break;
+            const page = pages[idx];
+            progressDiv.innerText = `Generowanie mapy ${idx + 1} / ${pages.length}, skala 1:${scale} (km ${page.startKm.toFixed(2)} - ${page.endKm.toFixed(2)})...`;
+
+            const [cLat, cLng] = page.center;
+            const zf = Math.log2((156543.03392 * Math.cos(cLat * Math.PI / 180)) / metersPerPx);
+            const world = 256 * Math.pow(2, zf);
+            const c = mercNorm(cLat, cLng);
+            const tlx = c.x * world - W / 2;
+            const tly = c.y * world - H / 2;
+
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            missingTotal += await drawAtlasBasemap(ctx, SC, zf, tlx, tly, W, H);
+            if (isAtlasCancelled) break;
+            drawAtlasRoutes(ctx, SC, routesToDraw, world, tlx, tly, W, H);
+
+            const summary = {};
+            Object.keys(CONFIG_TYPES).forEach(t => { summary[removePolishDiacritics(t)] = 0; });
+            const edgeNotes = [];
+            const half = ATLAS.ICON_HALF_PX, edge = ATLAS.EDGE_PX;
+            const iconLayout = layoutAtlasServiceIcons(routesToDraw, world, tlx, tly, W, H);
+            unresolvedLayoutTotal += iconLayout.unresolved;
+
+            pointsMap.forEach(p => {
+                if (!activeFilters[p.typ]) return;
+                const n = mercNorm(p.lat, p.lng);
+                const x = n.x * world - tlx, y = n.y * world - tly;
+                const markerPosition = iconLayout.positions.get(p.id) || { x, y };
+                const offset = p.positionOffset || { x: 0, y: 0 };
+                const drawX = markerPosition.x + offset.x;
+                const drawY = markerPosition.y + offset.y;
+                if (drawX < -half || drawX > W + half || drawY < -half || drawY > H + half) return;
+
+                const routeAngle = Number.isFinite(p.rotationOverride)
+                    ? p.rotationOverride
+                    : p.typ === "Śluza"
+                        ? getRoutePerpendicularAngle(p.lat, p.lng, routeKey)
+                        : p.typ === "Taśma" || p.typ === "Barierki" ? getRouteAngle(p.lat, p.lng, routeKey) : null;
+                drawAtlasMarker(ctx, drawX * SC, drawY * SC, SC, p.typ, atlasIcons, routeAngle);
+                const summaryType = removePolishDiacritics(p.typ);
+                summary[summaryType]++;
+
+                const sides = [];
+                if (drawY < edge) sides.push("gora");
+                if (drawY > H - edge) sides.push("dol");
+                if (drawX < edge) sides.push("lewo");
+                if (drawX > W - edge) sides.push("prawo");
+                if (sides.length) {
+                    edgeNotes.push(`${removePolishDiacritics(p.typ)} ${removePolishDiacritics(p.numerRaw)} (${sides.join("/")})`);
+                }
+            });
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.88);
+
+            if (inFile >= ATLAS.PAGES_PER_FILE) {
+                savePdf();
+                part++;
+                pdf = newPdf();
+                inFile = 0;
+                await sleep(600);
+            }
+            if (inFile > 0) pdf.addPage();
+            inFile++;
+
+            pdf.addImage(imgData, 'JPEG', 10, 12, mapWidthMm, imgHeightMm, undefined, 'FAST');
+            pdf.setDrawColor(0, 0, 0);
+            pdf.rect(10, 12, mapWidthMm, imgHeightMm);
+
+            drawPageFooter(pdf, mapWidthMm, routeKey, page, idx + 1, pages.length, summary, edgeNotes, scale);
+            addAtlasPointIndex(pdf, routeKey, page, idx + 1, metersPerPx, mapPagesByPoint);
+        }
+
+        if (!isAtlasCancelled) {
+            if (inFile > 0) {
+                progressDiv.innerText = "Atlas gotowy! Pobieranie pliku...";
+                savePdf();
+            }
+            let msg = multiPart ? `Gotowe! Pobrano ${part} plików PDF.` : "Gotowe!";
+            if (missingTotal > 0) msg += ` Uwaga: nie pobrano ${missingTotal} kafelków mapy (szare pola).`;
+            if (off.tooFar > 0) msg += ` Pominięto ${off.tooFar} pkt oddalonych o więcej niż ${ATLAS.OFFROUTE_MAX_M} m od trasy.`;
+            if (unresolvedLayoutTotal > 0) msg += ` Nie udało się rozsunąć ${unresolvedLayoutTotal} ikon do wymaganego odstępu — sprawdź zatłoczone obszary.`;
+            progressDiv.innerText = msg;
+        } else {
+            progressDiv.innerText = "Generowanie przerwane przez użytkownika.";
+        }
+
+    } catch (e) {
+        console.error("SZCZEGÓŁY BŁĘDU ATLASU:", e);
+        progressDiv.innerText = "Błąd: " + e.message;
+        alert("Błąd generowania atlasu: " + e.message);
+    } finally {
+        atlasTileCache.clear();
+        generateBtn.style.display = "block";
+        cancelBtn.style.display = "none";
+    }
+}
+
+// ---------- Start ----------
+window.onload = async function () {
+    loadPointRotationOverrides();
+    loadPointPositionOverrides();
+    await loadGpxRoutes();
+    await syncPointsData();
+
+    startLoop(syncPointsData, 30000);
+    startLoop(fetchLiveGpsUsers, 5000);
+
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) syncPointsData();
+    });
+};
 </script>
 </body>
 </html>
