@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>System Zabezpieczenia Tras i Biegów Masowych v2.9</title>
+
+<!-- Stylowanie Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<!-- Dodanie ikonek Font Awesome v6 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f6f9;
+}
+
+#panel {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 340px;
+    bottom: 0;
+    background: white;
+    overflow-y: auto;
+    border-right: 1px solid #ccc;
+    padding: 15px;
+    box-sizing: border-box;
+    z-index: 9999;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+#map {
+    position: absolute;
+    left: 340px;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.section-title {
+    margin-top: 15px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    text-transform: uppercase;
+    color: #555;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 3px;
+}
+
+.grid-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.mode-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 11px;
+    border: 1px solid #ccc;
+    background: #fdfdfd;
+    border-radius: 4px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.mode-btn:hover {
+    background: #f0f0f0;
+}
+
+.mode-btn.active {
+    background: #343a40;
+    border-color: #343a40;
+    color: white;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+}
+
+/* Graficzne ikony na mapie */
+.custom-marker-icon {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 26px !important;
+    height: 26px !important;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    background-color: #fff;
+    overflow: hidden;
+    color: white;
+    font-size: 11px;
+    text-align: center;
+    cursor: grab;
+    transition: transform 0.1s;
+}
+.custom-marker-icon:active {
+    cursor: grabbing;
+    transform: scale(1.2);
+}
+.custom-marker-icon svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+/* Mała odznaka typu w panelu i popupach */
+.type-badge {
+    display: inline-flex !important;
+    width: 20px !important;
+    height: 20px !important;
+    margin-right: 5px;
+    vertical-align: middle;
+    cursor: default !important;
+    box-shadow: none;
+    flex-shrink: 0;
+}
+.type-badge:active { transform: none; }
+.type-badge svg { width: 12px; height: 12px; }
+
+.icon-wolontariusz { border: 2px solid #007bff !important; }
+.icon-lider        { border: 2px solid #dc3545 !important; }
+.icon-ochrona      { border: 2px solid #d2d826 !important; }
+.icon-ruchem       { border: 2px solid #e84824 !important; }
+.icon-medyczny     { background: #28a745; }
+.icon-ploty        { background: #343a40; border-color: #f8f9fa; }
+.icon-toaleta      { background: #6f42c1; }
+.icon-zywieniowy   { border: 2px solid #0d6efd !important; }
+.icon-sedzia       { background: #e0a800; }
+.icon-sluza        { border: 2px solid #20c997 !important; }
+
+.btn-ctrl {
+    width: 100%;
+    padding: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.btn-main { background: #28a745; color: white; border: none; }
+.btn-danger { background: #dc3545; color: white; border: none; }
+.btn-secondary { background: #6c757d; color: white; border: none; }
+
+.gpx-route-box {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 10px;
+}
+.gpx-input-row {
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+.gpx-input-row label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.filter-item {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.filter-item input {
+    margin-right: 6px;
+}
+
+.stat-table {
+    width: 100%;
+    font-size: 12px;
+    border-collapse: collapse;
+    margin-top: 5px;
+}
+
+.stat-table th, .stat-table td {
+    border: 1px solid #eee;
+    padding: 4px;
+    text-align: left;
+}
+
+.stat-table th { background: #f8f9fa; }
+
+.search-box {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.pointItem {
+    border: 1px solid #ddd;
+    margin-bottom: 6px;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #fff;
+    font-size: 13px;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.pointItem:hover { background: #f1f3f5; }
+
+.action-btn {
+    border: none;
+    padding: 3px 6px;
+    cursor: pointer;
+    font-size: 10px;
+    border-radius: 3px;
+    margin-left: 3px;
+}
+
+.btn-edit { background: orange; color: white; }
+.btn-delete { background: red; color: white; }
+
+.coords {
+    font-family: monospace;
+    font-size: 10px;
+    color: #777;
+}
+
+.popup-form label {
+    font-size: 11px;
+    font-weight: bold;
+    display: block;
+    margin-top: 4px;
+}
+
+.popup-input, .popup-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 3px;
+    font-size: 12px;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+.popup-textarea { height: 50px; resize: vertical; }
+.popup-btn-container { margin-top: 8px; display: flex; gap: 4px; }
+.popup-btn { padding: 5px 8px; cursor: pointer; font-size: 12px; font-weight: bold; border-radius: 3px; border: 1px solid #ccc; }
+
+.badge-sector {
+    background: #e9ecef;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div id="panel">
+    <h2 style="margin-top:0; margin-bottom:10px; font-size:20px; color:#333;">Zabezpieczenie Biegu</h2>
+
+    <div style="margin-bottom: 10px;">
+        <label style="font-size:12px; font-weight:bold;">Nazwa Projektu:</label>
+        <input type="text" id="projectNameInput" class="popup-input" value="Silesia Marathon 2026" style="font-weight:bold; font-size:13px;" oninput="updateProjectTitle()">
+    </div>
+
+    <button class="btn-ctrl btn-danger" onclick="clearProject()">Nowy Projekt</button>
+    <div class="grid-buttons" style="margin-top: 5px;">
+        <button class="btn-ctrl btn-secondary" onclick="document.getElementById('jsonFileInput').click()">Import JSON</button>
+        <button class="btn-ctrl btn-secondary" style="background: #4b6584;" onclick="document.getElementById('xlsxFileInput').click()">Import XLSX</button>
+    </div>
+    <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="importJSON(event)">
+    <input type="file" id="xlsxFileInput" accept=".xlsx" style="display:none;" onchange="importExcel(event)">
+
+    <div class="section-title">Trasy Biegu (Wgrywanie / Rysowanie / Eksport)</div>
+    <div class="gpx-route-box">
+        <!-- TRASA 5K -->
+        <div class="gpx-input-row">
+            <label style="color: #6f42c1;"><i class="fa-solid fa-route"></i> Trasa 5K (Fioletowa):</label>
+            <div style="display:flex; gap:4px; margin-top:2px;">
+                <input type="file" id="gpxFile5K" accept=".gpx" style="font-size:10px; flex:1;" onchange="loadGpxRoute('5K', this)">
+                <button class="action-btn btn-main" style="background:#6f42c1; white-space:nowrap;" onclick="exportGPX('5K')" title="Pobierz tę trasę jako plik GPX"><i class="fa-solid fa-download"></i> GPX</button>
+            </div>
+        </div>
+        <!-- TRASA 10K -->
+        <div class="gpx-input-row">
+            <label style="color: #b8860b;"><i class="fa-solid fa-route"></i> Trasa 10K (Żółta):</label>
+            <div style="display:flex; gap:4px; margin-top:2px;">
+                <input type="file" id="gpxFile10K" accept=".gpx" style="font-size:10px; flex:1;" onchange="loadGpxRoute('10K', this)">
+                <button class="action-btn btn-main" style="background:#ffc107; color:#000; white-space:nowrap;" onclick="exportGPX('10K')" title="Pobierz tę trasę jako plik GPX"><i class="fa-solid fa-download"></i> GPX</button>
+            </div>
+        </div>
+        <!-- TRASA SM -->
+        <div class="gpx-input-row">
+            <label style="color: #007bff;"><i class="fa-solid fa-route"></i> Trasa SM (Niebieska):</label>
+            <div style="display:flex; gap:4px; margin-top:2px;">
+                <input type="file" id="gpxFileSM" accept=".gpx" style="font-size:10px; flex:1;" onchange="loadGpxRoute('SM', this)">
+                <button class="action-btn btn-main" style="background:#007bff; white-space:nowrap;" onclick="exportGPX('SM')" title="Pobierz tę trasę jako plik GPX"><i class="fa-solid fa-download"></i> GPX</button>
+            </div>
+        </div>
+        <!-- TRASA HM -->
+        <div class="gpx-input-row">
+            <label style="color: #dc3545;"><i class="fa-solid fa-route"></i> Trasa HM (Czerwona):</label>
+            <div style="display:flex; gap:4px; margin-top:2px;">
+                <input type="file" id="gpxFileHM" accept=".gpx" style="font-size:10px; flex:1;" onchange="loadGpxRoute('HM', this)">
+                <button class="action-btn btn-main" style="background:#dc3545; white-space:nowrap;" onclick="exportGPX('HM')" title="Pobierz tę trasę jako plik GPX"><i class="fa-solid fa-download"></i> GPX</button>
+            </div>
+        </div>
+        <!-- TRASA UM -->
+        <div class="gpx-input-row">
+            <label style="color: #20c997;"><i class="fa-solid fa-route"></i> Trasa UM (Seledynowa):</label>
+            <div style="display:flex; gap:4px; margin-top:2px;">
+                <input type="file" id="gpxFileUM" accept=".gpx" style="font-size:10px; flex:1;" onchange="loadGpxRoute('UM', this)">
+                <button class="action-btn btn-main" style="background:#20c997; white-space:nowrap;" onclick="exportGPX('UM')" title="Pobierz tę trasę jako plik GPX"><i class="fa-solid fa-download"></i> GPX</button>
+            </div>
+        </div>
+
+        <hr style="border:0; border-top:1px solid #ddd; margin:8px 0;">
+
+        <!-- MODUŁ RĘCZNEGO RYSOWANIA TRASY -->
+        <label style="font-size:12px; font-weight:bold; color:#333;"><i class="fa-solid fa-pen-nib"></i> Ręczne rysowanie trasy:</label>
+        <div style="margin-top:4px; display:flex; gap:4px;">
+            <select id="drawRouteSelect" class="popup-input" style="margin-bottom:0; flex:1;" onchange="updateRouteDistanceUI()">
+                <option value="5K">Trasa 5K</option>
+                <option value="10K">Trasa 10K</option>
+                <option value="SM">Trasa SM</option>
+                <option value="HM">Trasa HM</option>
+                <option value="UM">Trasa UM</option>
+            </select>
+            <button id="toggleDrawBtn" class="btn-ctrl btn-main" style="width:auto; padding:4px 8px; margin-bottom:0;" onclick="toggleDrawRouteMode()">Rysuj</button>
+        </div>
+        <div id="drawInfoBox" style="display:none; margin-top:6px; font-size:11px; color:#555; background:#e9ecef; padding:6px; border-radius:3px;">
+            <i class="fa-solid fa-circle-info"></i> Klikaj na mapie, aby stawiać kolejne punkty trasy.<br>
+
+            <!-- LICZNIK ODLEGLOŚCI -->
+            <div id="drawDistanceText" style="margin-top:6px; font-size:12px; font-weight:bold; color:#007bff; background:#fff; padding:4px 6px; border-radius:3px; border:1px solid #ced4da;">
+                <i class="fa-solid fa-ruler-horizontal"></i> Długość trasy: 0 m
+            </div>
+
+            <div style="margin-top:6px; display:flex; gap:4px;">
+                <button class="action-btn btn-edit" onclick="undoLastRoutePoint()"><i class="fa-solid fa-rotate-left"></i> Cofnij punkt</button>
+                <button class="action-btn btn-delete" onclick="clearActiveRoute()"><i class="fa-solid fa-trash"></i> Wyczyść trasę</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">Tryb dodawania punktów</div>
+    <div class="grid-buttons" id="modeButtons"></div>
+
+    <div class="section-title">Eksport Danych Projektu</div>
+    <div class="grid-buttons">
+        <button class="btn-ctrl btn-main" onclick="exportJSON()">Eksport JSON</button>
+        <button class="btn-ctrl btn-main" style="background:#1f7a3e;" onclick="exportExcel()">Eksport XLSX</button>
+    </div>
+
+    <div class="section-title">Filtrowanie warstw</div>
+    <div id="filterContainer" style="max-height: 160px; overflow-y: auto; background:#f8f9fa; padding:5px; border-radius:4px; border:1px solid #ddd;"></div>
+
+    <div class="section-title">Wyszukiwarka</div>
+    <input type="text" id="searchPointInput" class="search-box" placeholder="Szukaj numeru np. TAS-002..." oninput="searchPoints()">
+
+    <div class="section-title">Statystyki Live</div>
+    <table class="stat-table">
+        <thead>
+            <tr><th>Typ</th><th>Ilość</th><th>Obsada (os.)</th></tr>
+        </thead>
+        <tbody id="statTableBody"></tbody>
+    </table>
+
+    <div class="section-title">Lista Punktów (<span id="pointsCount">0</span>)</div>
+    <div id="pointList" style="max-height:300px; overflow-y:auto; margin-top:5px;"></div>
+</div>
+
+<div id="map"></div>
+
+<!-- Biblioteki zewnętrzne Leaflet, toGeoJSON oraz SheetJS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+// ---------- Ikony SVG (takie same jak w podglądzie) ----------
+const SVG_INFORMACYJNA_BLACK = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 119 168' width='16' height='16'><path d='M684.825,274.427C682.043,274.454 679.888,278.598 680.48,282.056C680.48,282.056 680.48,291.417 688.989,291.417C697.499,291.417 697.499,282.056 697.499,282.056C697.499,280.638 697.728,275.102 694.412,274.713M677.075,301.144L677.075,316.947L697.087,293.359C696.611,293.219 696.119,293.119 695.598,293.119L682.182,293.119C675.276,293.4 677.407,297.416 677.075,301.144ZM697.087,293.359L677.075,316.947L700.904,316.947L700.904,298.425C701.572,293.292 697.988,293.774 697.087,293.359ZM689.108,294.246C692.008,294.246 694.635,295.431 696.537,297.346C698.44,299.259 699.616,301.899 699.616,304.812C699.616,307.724 698.44,310.364 696.537,312.278C694.635,314.192 692.008,315.377 689.108,315.377C686.207,315.377 683.581,314.192 681.678,312.278C679.776,310.364 678.6,307.724 678.6,304.812C678.6,301.899 679.776,299.259 681.678,297.346C683.581,295.431 686.207,294.246 689.108,294.246ZM694.819,299.055C693.359,297.586 691.339,296.678 689.108,296.678C686.876,296.678 684.856,297.586 683.397,299.055C681.935,300.526 681.031,302.561 681.031,304.812C681.031,307.062 681.935,309.097 683.397,310.568C684.856,312.037 686.876,312.945 689.108,312.945C691.339,312.945 693.359,312.037 694.819,310.568C696.28,309.097 697.184,307.062 697.184,304.812C697.184,302.561 696.28,300.526 694.819,299.055ZM687.604,299.4L690.612,299.4L690.612,301.441L687.604,301.441L687.604,299.4ZM687.604,302.378L690.612,302.378L690.612,310.223L687.604,310.223L687.604,302.378Z' fill='#000000' transform='matrix(3.51264,0,0,3.92445,-2361.91,-1077.12)'/></svg>`;
+const SVG_RUCHEM_ORANGE = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 119 168' width='16' height='16'><path d='M642.638,109.482L658.992,109.482C656.224,108.391 653.665,106.211 650.69,106.211C647.793,106.211 645.322,108.391 642.638,109.482ZM642.638,111.117L642.638,115.205C642.638,115.205 642.638,124.2 650.815,124.2C658.992,124.2 658.992,115.205 658.992,115.205L658.992,111.117L642.638,111.117ZM629.504,115.978C627.7,116.006 626.26,117.49 626.284,119.294L626.284,132.377C626.284,134.47 628.221,136.024 630.265,135.571L639.368,133.546L639.368,147.137C641.899,143.92 655.945,125.835 655.665,125.835L644.274,125.835L632.826,128.301L632.826,119.294C632.851,117.45 631.348,115.949 629.504,115.978ZM659.775,126.333L642.462,148.731L662.263,148.731L662.263,130.933C662.905,126.001 660.641,126.733 659.775,126.333' fill='#e84824' transform='matrix(3.57579,0,0,3.995,-2244.93,-425.452)'/></svg>`;
+const SVG_PORZADKOWA = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 119 168' width='16' height='16'><g transform='matrix(3.53411,0,0,3.90062,-1655.02,-315.577)'><g transform='matrix(1,0,0,1,0,-390.34)'><path d='M485.478,471.54C477.903,471.424 475.748,475.568 476.339,479.026C476.339,479.026 476.339,488.386 484.849,488.386C493.359,488.386 493.359,479.026 493.359,479.026C493.359,477.607 493.588,472.072 485.478,471.54ZM492.577,490.021L478.041,490.088C471.136,490.369 473.267,494.385 472.936,498.113L472.898,513.916L496.763,513.916L496.763,495.394C497.432,490.261 494.598,490.368 492.577,490.021Z' fill='#d2d826' stroke='#0d070c' stroke-width='1.12px'/></g><g transform='matrix(1,0,0,1,0,-351.934)'><rect x='472.908' y='471.424' width='23.855' height='4.086' fill='#0d070c' stroke='#1c1917' stroke-width='0.63px'/></g><g transform='matrix(1,0,0,1,0,-375.78)'><rect x='484.001' y='475.501' width='2.251' height='19.779' fill='#0d070c' stroke='#1c1917' stroke-width='0.63px'/></g><text x='488.821px' y='108.702px' style="font-family:'Arial-Black', 'Arial', sans-serif;font-weight:900;font-size:9.713px;" fill='#1c1917'>S</text><g transform='matrix(1,0,0,1,0,-375.78)'><path d='M472.908,495.27L484.077,495.279L484.001,475.501' fill='none' stroke='#1c1917' stroke-width='0.63px'/></g><g transform='matrix(1,0,0,1,0,-375.79)'><path d='M496.679,495.27L486.252,495.289L486.177,475.501' fill='none' stroke='#1c1917' stroke-width='0.63px'/></g></g></svg>`;
+const SVG_TASMA = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='16' height='16'><g transform='rotate(-25 50 50)'><rect x='0' y='35' width='100' height='30' fill='#ffffff' stroke='#dc3545' stroke-width='2'/><path d='M 10 35 L 25 35 L 10 65 Z M 30 35 L 50 35 L 30 65 L 10 65 Z M 55 35 L 75 35 L 55 65 L 35 65 Z M 80 35 L 100 35 L 80 65 L 60 65 Z M 100 45 L 100 65 L 85 65 Z' fill='#dc3545'/></g></svg>`;
+const SVG_SLUZA = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='16' height='16'><g fill='#20c997'><path d='M 15 35 L 55 35 L 55 20 L 85 42.5 L 55 65 L 55 50 L 15 50 Z'/><path d='M 85 65 L 45 65 L 45 50 L 15 72.5 L 45 95 L 45 80 L 85 80 Z'/></g></svg>`;
+const SVG_MEDYCZNY = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='16' height='16' fill='#ffffff'><path d='M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19z'/></svg>`;
+const SVG_BADIERKI = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='16' height='16' fill='#ffffff'><path d='M20 6h-3V4c0-.55-.45-1-1-1H8c-.55 0-1 .45-1 1v2H4c-1.1 0-2 .9-2 2v11c0 .55.45 1 1 1h3v2c0 .55.45 1 1 1h8c.55 0 1-.45 1-2v-2h3c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM8 5h8v2H8V5zm8 14H8v-2h8v2zm3-4H5V9h14v6z'/></svg>`;
+const SVG_TOALETA = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='16' height='16'><text x='12' y='16.5' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='bold' font-size='11.5' fill='#ffffff'>WC</text></svg>`;
+const SVG_ZYWIENIOWY = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='16' height='16' fill='#0d6efd'><path d='M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z'/></svg>`;
+const SVG_SEDZIA = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='16' height='16' fill='#ffffff'><path d='M12 2c1.1 0 2 .9 2 2v1.17c3.41.44 6 3.32 6 6.83 0 3.87-3.13 7-7 7s-7-3.13-7-7c0-3.51 2.59-6.39 6-6.83V4c0-1.1.9-2 2-2zm0 16c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-1-8h2v3h-2v-3zm0 4h2v2h-2v-2z'/></svg>`;
+
+const CONFIG_TYPES = {
+    "Służba informacyjna":      { prefix: "INF",  className: "icon-wolontariusz", svgContent: SVG_INFORMACYJNA_BLACK, color: "#007bff" },
+    "Taśma":                    { prefix: "TAS",  className: "icon-lider",        svgContent: SVG_TASMA,              color: "#dc3545" },
+    "Służba porządkowa":        { prefix: "POR",  className: "icon-ochrona",      svgContent: SVG_PORZADKOWA,         color: "#d2d826" },
+    "Służba kierowania ruchem": { prefix: "RUCH", className: "icon-ruchem",       svgContent: SVG_RUCHEM_ORANGE,      color: "#e84824" },
+    "Medyczny":                 { prefix: "MED",  className: "icon-medyczny",     svgContent: SVG_MEDYCZNY,           color: "#28a745" },
+    "Barierki":                 { prefix: "BAR",  className: "icon-ploty",        svgContent: SVG_BADIERKI,           color: "#343a40" },
+    "Toaleta":                  { prefix: "TOAL", className: "icon-toaleta",      svgContent: SVG_TOALETA,            color: "#6f42c1" },
+    "Punkt żywieniowy":         { prefix: "ZYW",  className: "icon-zywieniowy",   svgContent: SVG_ZYWIENIOWY,         color: "#0d6efd" },
+    "Sędzia":                   { prefix: "SED",  className: "icon-sedzia",       svgContent: SVG_SEDZIA,             color: "#e0a800" },
+    "Śluza":                    { prefix: "SLU",  className: "icon-sluza",        svgContent: SVG_SLUZA,              color: "#20c997" }
+};
+
+const CONFIG_ROUTES = {
+    "5K":  { color: "#6f42c1", weight: 5, layer: null },
+    "10K": { color: "#ffc107", weight: 5, layer: null },
+    "SM":  { color: "#007bff", weight: 5, layer: null },
+    "HM":  { color: "#dc3545", weight: 5, layer: null },
+    "UM":  { color: "#20c997", weight: 5, layer: null }
+};
+
+// Zamiana starych nazw typów (z wcześniejszych projektów) na aktualne
+function normalizeType(typ) {
+    if (typ === "Wolontariusz") return "Służba informacyjna";
+    if (typ === "Ochrona") return "Służba porządkowa";
+    if (typ === "Kierowanie ruchem" || typ === "Policja") return "Służba kierowania ruchem";
+    if (typ === "Płoty") return "Barierki";
+    if (typ === "Lider" || typ === "Koordynator" || typ === "Punkt kibicowania") return "Taśma";
+    return typ;
+}
+
+function iconHtml(type) {
+    const c = CONFIG_TYPES[type];
+    return c && c.svgContent ? c.svgContent : '<i class="fa-solid fa-location-dot"></i>';
+}
+
+// Mała okrągła odznaka typu (panel boczny, popupy) - dzięki tłu widać też białe ikony
+function badgeHtml(type) {
+    const c = CONFIG_TYPES[type];
+    return `<span class="custom-marker-icon type-badge ${c ? c.className : ''}">${iconHtml(type)}</span>`;
+}
+
+const map = L.map('map').setView([50.2649, 19.0238], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+Object.keys(CONFIG_ROUTES).forEach(key => {
+    CONFIG_ROUTES[key].layer = L.geoJSON(null, {
+        // pomijamy waypointy z GPX (inaczej pojawiłyby się domyślne markery)
+        filter: f => f.geometry && f.geometry.type !== 'Point',
+        style: { color: CONFIG_ROUTES[key].color, weight: CONFIG_ROUTES[key].weight }
+    }).addTo(map);
+});
+
+let currentMode = null;
+let points = [];
+let projectName = "Silesia Marathon 2026";
+let activeFilters = {};
+
+// Stan dla ręcznego rysowania tras
+let isDrawingRoute = false;
+let routeLatLngs = { "5K": [], "10K": [], "SM": [], "HM": [], "UM": [] };
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function generateUUID() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'id-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36);
+}
+
+function updateProjectTitle() {
+    projectName = document.getElementById("projectNameInput").value;
+}
+
+function initModeButtons() {
+    const box = document.getElementById("modeButtons");
+    box.innerHTML = "";
+    Object.keys(CONFIG_TYPES).forEach(t => {
+        const b = document.createElement("button");
+        b.className = "mode-btn";
+        b.dataset.mode = t;
+        b.innerHTML = `${badgeHtml(t)}<span>${t}</span>`;
+        b.onclick = () => setMode(t);
+        box.appendChild(b);
+    });
+}
+initModeButtons();
+
+function initFilters() {
+    const container = document.getElementById("filterContainer");
+    container.innerHTML = "";
+    Object.keys(CONFIG_TYPES).forEach(type => {
+        activeFilters[type] = true;
+        const div = document.createElement("div");
+        div.className = "filter-item";
+        div.innerHTML = `
+            <input type="checkbox" id="filter_${type}" checked onchange="toggleFilter('${type}', this.checked)">
+            ${badgeHtml(type)}
+            <label for="filter_${type}" style="cursor:pointer; font-weight:bold;">${type}</label>
+        `;
+        container.appendChild(div);
+    });
+}
+initFilters();
+
+function toggleFilter(type, isVisible) {
+    activeFilters[type] = isVisible;
+    points.forEach(p => {
+        if (p.typ === type) {
+            if (isVisible) {
+                if (!map.hasLayer(p.marker)) p.marker.addTo(map);
+            } else {
+                if (map.hasLayer(p.marker)) map.removeLayer(p.marker);
+            }
+        }
+    });
+    refreshList();
+    updateStats();
+}
+
+function setMode(mode) {
+    if (isDrawingRoute) toggleDrawRouteMode();
+    currentMode = mode;
+    document.querySelectorAll(".mode-btn").forEach(btn => btn.classList.remove("active"));
+    const activeBtn = document.querySelector(`.mode-btn[data-mode="${mode}"]`);
+    if (activeBtn) activeBtn.classList.add("active");
+}
+
+/* OBLICZANIE ODLEGLOŚCI TRASY */
+function calculateRouteDistance(key) {
+    let totalMeters = 0;
+
+    // 1. Dla tras rysowanych ręcznie
+    if (routeLatLngs[key] && routeLatLngs[key].length > 1) {
+        for (let i = 1; i < routeLatLngs[key].length; i++) {
+            const p1 = L.latLng(routeLatLngs[key][i-1][0], routeLatLngs[key][i-1][1]);
+            const p2 = L.latLng(routeLatLngs[key][i][0], routeLatLngs[key][i][1]);
+            totalMeters += p1.distanceTo(p2);
+        }
+    } else {
+        // 2. Dla tras wczytanych z plików GPX
+        const geojson = CONFIG_ROUTES[key].layer.toGeoJSON();
+        if (geojson && geojson.features) {
+            geojson.features.forEach(feature => {
+                let coords = [];
+                if (feature.geometry && feature.geometry.type === "LineString") {
+                    coords = feature.geometry.coordinates;
+                } else if (feature.geometry && feature.geometry.type === "MultiLineString") {
+                    feature.geometry.coordinates.forEach(line => coords = coords.concat(line));
+                }
+                for (let i = 1; i < coords.length; i++) {
+                    const p1 = L.latLng(coords[i-1][1], coords[i-1][0]);
+                    const p2 = L.latLng(coords[i][1], coords[i][0]);
+                    totalMeters += p1.distanceTo(p2);
+                }
+            });
+        }
+    }
+
+    return totalMeters;
+}
+
+function formatDistanceText(meters) {
+    if (meters >= 1000) {
+        return (meters / 1000).toFixed(2) + " km";
+    }
+    return Math.round(meters) + " m";
+}
+
+function updateRouteDistanceUI() {
+    const key = document.getElementById("drawRouteSelect").value;
+    const distMeters = calculateRouteDistance(key);
+    const textElem = document.getElementById("drawDistanceText");
+    const routeCfg = CONFIG_ROUTES[key];
+
+    if (textElem) {
+        textElem.innerHTML = `<i class="fa-solid fa-ruler-horizontal" style="color:${routeCfg.color};"></i> Długość trasy (${key}): <b>${formatDistanceText(distMeters)}</b>`;
+    }
+}
+
+/* FUNKCJE RĘCZNEGO RYSOWANIA TRASY */
+function toggleDrawRouteMode() {
+    isDrawingRoute = !isDrawingRoute;
+    const btn = document.getElementById("toggleDrawBtn");
+    const infoBox = document.getElementById("drawInfoBox");
+
+    if (isDrawingRoute) {
+        currentMode = null;
+        document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+        btn.innerText = "Zakończ";
+        btn.style.background = "#dc3545";
+        infoBox.style.display = "block";
+        map.getContainer().style.cursor = "crosshair";
+        updateRouteDistanceUI();
+    } else {
+        btn.innerText = "Rysuj";
+        btn.style.background = "#28a745";
+        infoBox.style.display = "none";
+        map.getContainer().style.cursor = "";
+    }
+}
+
+function updateRouteLayer(key) {
+    const routeCfg = CONFIG_ROUTES[key];
+    routeCfg.layer.clearLayers();
+
+    if (routeLatLngs[key] && routeLatLngs[key].length > 0) {
+        const polyline = L.polyline(routeLatLngs[key], {
+            color: routeCfg.color,
+            weight: routeCfg.weight
+        });
+        routeCfg.layer.addLayer(polyline);
+    }
+    updateRouteDistanceUI();
+}
+
+function undoLastRoutePoint() {
+    const key = document.getElementById("drawRouteSelect").value;
+    if (routeLatLngs[key] && routeLatLngs[key].length > 0) {
+        routeLatLngs[key].pop();
+        updateRouteLayer(key);
+    }
+}
+
+function clearActiveRoute() {
+    const key = document.getElementById("drawRouteSelect").value;
+    if (confirm(`Czy na pewno usunąć całą narysowaną trasę ${key}?`)) {
+        routeLatLngs[key] = [];
+        updateRouteLayer(key);
+    }
+}
+
+function loadGpxRoute(routeKey, inputElement) {
+    const file = inputElement.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const parser = new DOMParser();
+        const gpx = parser.parseFromString(event.target.result, "text/xml");
+        const geojson = toGeoJSON.gpx(gpx);
+
+        const routeCfg = CONFIG_ROUTES[routeKey];
+        routeCfg.layer.clearLayers();
+        routeLatLngs[routeKey] = [];
+        routeCfg.layer.addData(geojson);
+
+        fitMapToAllRoutes();
+        updateRouteDistanceUI();
+    };
+    reader.readAsText(file);
+}
+
+/* EKSPORT TRASY DO PLIKU GPX */
+function exportGPX(routeKey) {
+    let coords = [];
+
+    if (routeLatLngs[routeKey] && routeLatLngs[routeKey].length > 0) {
+        coords = routeLatLngs[routeKey];
+    } else {
+        const geojson = CONFIG_ROUTES[routeKey].layer.toGeoJSON();
+        if (geojson && geojson.features) {
+            geojson.features.forEach(feature => {
+                if (feature.geometry && feature.geometry.type === "LineString") {
+                    feature.geometry.coordinates.forEach(c => coords.push([c[1], c[0]]));
+                } else if (feature.geometry && feature.geometry.type === "MultiLineString") {
+                    feature.geometry.coordinates.forEach(line => {
+                        line.forEach(c => coords.push([c[1], c[0]]));
+                    });
+                }
+            });
+        }
+    }
+
+    if (coords.length === 0) {
+        alert(`Brak narysowanej lub zaimportowanej trasy dla typu: ${routeKey}`);
+        return;
+    }
+
+    let gpxContent = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    gpxContent += `<gpx version="1.1" creator="System Zabezpieczenia Biegu" xmlns="http://www.topografix.com/GPX/1/1">\n`;
+    gpxContent += `  <trk>\n`;
+    gpxContent += `    <name>Trasa ${routeKey} - ${escapeHtml(projectName)}</name>\n`;
+    gpxContent += `    <trkseg>\n`;
+
+    coords.forEach(pt => {
+        gpxContent += `      <trkpt lat="${pt[0]}" lon="${pt[1]}"></trkpt>\n`;
+    });
+
+    gpxContent += `    </trkseg>\n`;
+    gpxContent += `  </trk>\n`;
+    gpxContent += `</gpx>`;
+
+    const blob = new Blob([gpxContent], { type: 'application/gpx+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.href = url;
+    downloadAnchor.download = `${projectName.toLowerCase().replace(/\s+/g, '_')}_trasa_${routeKey}.gpx`;
+    downloadAnchor.click();
+    URL.revokeObjectURL(url);
+}
+
+function fitMapToAllRoutes() {
+    const bounds = L.latLngBounds([]);
+    let hasLayers = false;
+
+    Object.keys(CONFIG_ROUTES).forEach(key => {
+        const layer = CONFIG_ROUTES[key].layer;
+        if (layer.getLayers().length > 0) {
+            bounds.extend(layer.getBounds());
+            hasLayers = true;
+        }
+    });
+
+    if (hasLayers) {
+        map.fitBounds(bounds);
+    }
+}
+
+function generateNextNumber(type) {
+    const cfg = CONFIG_TYPES[type];
+    if (!cfg) return "";
+    const filtered = points.filter(p => p.typ === type);
+    let maxNum = 0;
+    const regex = new RegExp(`^${cfg.prefix}-0*(\\d+)$`);
+
+    filtered.forEach(p => {
+        const match = p.numer.trim().toUpperCase().match(regex);
+        if (match) {
+            const val = parseInt(match[1], 10);
+            if (val > maxNum) maxNum = val;
+        }
+    });
+    const nextVal = maxNum + 1;
+    return `${cfg.prefix}-${String(nextVal).padStart(3, '0')}`;
+}
+
+map.on("click", function(e) {
+    if (isDrawingRoute) {
+        const key = document.getElementById("drawRouteSelect").value;
+        routeLatLngs[key].push([e.latlng.lat, e.latlng.lng]);
+        updateRouteLayer(key);
+        return;
+    }
+
+    if (!currentMode) {
+        alert("Wybierz typ punktu z panelu bocznego lub włącz tryb rysowania tras.");
+        return;
+    }
+    showAddPopup(e.latlng);
+});
+
+function showAddPopup(latlng) {
+    const autoNum = generateNextNumber(currentMode);
+    const popupContent = `
+        <div class="popup-form" style="width:240px">
+            <b style="color:${CONFIG_TYPES[currentMode].color}; font-size:14px;">${badgeHtml(currentMode)}Dodaj: ${currentMode}</b><br>
+
+            <label>Numer identyfikacyjny:</label>
+            <input id="newNumber" class="popup-input" value="${escapeHtml(autoNum)}">
+
+            <label>Sektor:</label>
+            <input id="newSector" class="popup-input" placeholder="np. A, Trasa, Rondo">
+
+            <label>Liczba osób:</label>
+            <input type="number" id="newPeople" class="popup-input" value="1" min="0">
+
+            <label>Telefon kontaktowy:</label>
+            <input id="newPhone" class="popup-input" placeholder="np. +48 500...">
+
+            <label>Uwagi / opis lokacji:</label>
+            <textarea id="newNotes" class="popup-textarea" placeholder="Wpisz opis lokalizacji..."></textarea>
+
+            <div class="popup-btn-container">
+                <button class="popup-btn btn-main" onclick="savePoint(${latlng.lat}, ${latlng.lng})">Zapisz</button>
+                <button class="popup-btn" onclick="map.closePopup()">Anuluj</button>
+            </div>
+        </div>
+    `;
+
+    L.popup().setLatLng(latlng).setContent(popupContent).openOn(map);
+}
+
+function savePoint(lat, lng) {
+    const numer = document.getElementById("newNumber").value.trim();
+    const sector = document.getElementById("newSector").value.trim();
+    const liczba_osob = parseInt(document.getElementById("newPeople").value, 10) || 0;
+    const telefon = document.getElementById("newPhone").value.trim();
+    const uwagi = document.getElementById("newNotes").value.trim();
+
+    if (!numer) {
+        alert("Numer punktu nie może być pusty!");
+        return;
+    }
+
+    const pointId = generateUUID();
+    createMarkerAndAdd(pointId, currentMode, numer, sector, liczba_osob, telefon, uwagi, lat, lng);
+
+    map.closePopup();
+    refreshList();
+    updateStats();
+}
+
+function createMarkerAndAdd(id, typ, numer, sektor, liczba_osob, telefon, uwagi, lat, lng) {
+    const cfg = CONFIG_TYPES[typ];
+    const iconClassName = cfg ? cfg.className : "";
+
+    const customIcon = L.divIcon({
+        className: `custom-marker-icon ${iconClassName}`,
+        html: iconHtml(typ),
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+    });
+
+    const marker = L.marker([lat, lng], {
+        icon: customIcon,
+        draggable: true
+    });
+
+    if (activeFilters[typ]) {
+        marker.addTo(map);
+    }
+
+    const point = { id, typ, numer, sektor, liczba_osob, telefon, uwagi, lat, lng, marker };
+    points.push(point);
+
+    marker.on('dragend', function(e) {
+        const newPos = e.target.getLatLng();
+        point.lat = newPos.lat;
+        point.lng = newPos.lng;
+
+        updatePopupContent(point);
+        refreshList();
+        updateStats();
+    });
+
+    updatePopupContent(point);
+}
+
+function updatePopupContent(point) {
+    const cfg = CONFIG_TYPES[point.typ];
+    point.marker.bindPopup(`
+        <div class="popup-form" style="width:240px">
+            <b style="color:${cfg.color}; font-size:14px;">${badgeHtml(point.typ)}Edycja: ${point.typ}</b><br>
+
+            <label>Numer identyfikacyjny:</label>
+            <input id="nr_${point.id}" class="popup-input" value="${escapeHtml(point.numer)}">
+
+            <label>Sektor:</label>
+            <input id="sek_${point.id}" class="popup-input" value="${escapeHtml(point.sektor)}">
+
+            <label>Liczba osób:</label>
+            <input type="number" id="peop_${point.id}" class="popup-input" value="${point.liczba_osob}" min="0">
+
+            <label>Telefon kontaktowy:</label>
+            <input id="tel_${point.id}" class="popup-input" value="${escapeHtml(point.telefon)}">
+
+            <label>Uwagi / opis lokacji:</label>
+            <textarea id="uwagi_${point.id}" class="popup-textarea">${escapeHtml(point.uwagi)}</textarea>
+
+            <div class="coords">Współrzędne: ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}</div>
+
+            <div class="popup-btn-container">
+                <button class="popup-btn btn-main" onclick="saveEdit('${point.id}')">Zapisz</button>
+                <button class="popup-btn btn-danger" onclick="deletePoint('${point.id}')">Usuń</button>
+            </div>
+        </div>
+    `);
+}
+
+function saveEdit(id) {
+    const point = points.find(p => p.id === id);
+    if (!point) return;
+
+    const newNum = document.getElementById("nr_" + id).value.trim();
+    if (!newNum) {
+        alert("Numer punktu nie może być pusty!");
+        return;
+    }
+
+    point.numer = newNum;
+    point.sektor = document.getElementById("sek_" + id).value.trim();
+    point.liczba_osob = parseInt(document.getElementById("peop_" + id).value, 10) || 0;
+    point.telefon = document.getElementById("tel_" + id).value.trim();
+    point.uwagi = document.getElementById("uwagi_" + id).value.trim();
+
+    updatePopupContent(point);
+    refreshList();
+    updateStats();
+    point.marker.openPopup();
+}
+
+function deletePoint(id) {
+    if (!confirm("Czy na pewno chcesz bezpowrotnie usunąć ten punkt?")) return;
+    const index = points.findIndex(p => p.id === id);
+    if (index === -1) return;
+
+    map.removeLayer(points[index].marker);
+    points.splice(index, 1);
+
+    refreshList();
+    updateStats();
+    map.closePopup();
+}
+
+function refreshList() {
+    let html = "";
+    const searchVal = document.getElementById("searchPointInput").value.toLowerCase().trim();
+
+    points.forEach(p => {
+        if (!activeFilters[p.typ]) return;
+        if (searchVal && !p.numer.toLowerCase().includes(searchVal)) return;
+
+        html += `
+        <div class="pointItem" onclick="focusPoint('${p.id}')" style="border-left: 5px solid ${CONFIG_TYPES[p.typ].color};">
+            <div style="float:right">
+                <button class="action-btn btn-edit" onclick="event.stopPropagation(); focusPoint('${p.id}');"><i class="fa-solid fa-pen"></i></button>
+                <button class="action-btn btn-delete" onclick="event.stopPropagation(); deletePoint('${p.id}');"><i class="fa-solid fa-trash"></i></button>
+            </div>
+            <b>${badgeHtml(p.typ)}${escapeHtml(p.typ)}</b> - <span style="font-weight:bold; color:#111;">${escapeHtml(p.numer)}</span>
+            ${p.sektor ? `<span class="badge-sector">Sek: ${escapeHtml(p.sektor)}</span>` : ''}
+            <br>
+            <small style="display:block; margin:2px 0; color:#555;">
+                ${p.liczba_osob ? `Obsada: <b>${p.liczba_osob} os.</b>` : ''}
+                ${p.telefon ? ` | Tel: ${escapeHtml(p.telefon)}` : ''}
+            </small>
+            <small style="color:#666; font-style:italic;">${p.uwagi ? escapeHtml(p.uwagi) : 'Brak uwag.'}</small>
+            <div class="coords">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div>
+        </div>
+        `;
+    });
+
+    document.getElementById("pointList").innerHTML = html;
+    document.getElementById("pointsCount").innerText = points.filter(p => activeFilters[p.typ]).length;
+}
+
+function focusPoint(id) {
+    const point = points.find(p => p.id === id);
+    if (!point) return;
+    map.setView([point.lat, point.lng], 17);
+    point.marker.openPopup();
+}
+
+function searchPoints() {
+    refreshList();
+}
+
+function updateStats() {
+    let html = "";
+    let grandTotalPoints = 0;
+    let grandTotalPeople = 0;
+
+    Object.keys(CONFIG_TYPES).forEach(type => {
+        const matching = points.filter(p => p.typ === type);
+        const countPoints = matching.length;
+        const countPeople = matching.reduce((sum, p) => sum + (p.liczba_osob || 0), 0);
+
+        grandTotalPoints += countPoints;
+        grandTotalPeople += countPeople;
+
+        if (countPoints > 0) {
+            html += `
+                <tr>
+                    <td>${badgeHtml(type)}${type}</td>
+                    <td><b>${countPoints}</b></td>
+                    <td>${countPeople}</td>
+                </tr>
+            `;
+        }
+    });
+
+    if (grandTotalPoints === 0) {
+        html = `<tr><td colspan="3" style="text-align:center; color:#999;">Brak naniesionych punktów</td></tr>`;
+    } else {
+        html += `
+            <tr style="background:#e9ecef; font-weight:bold; border-top:2px solid #ccc;">
+                <td>RAZEM</td>
+                <td>${grandTotalPoints}</td>
+                <td>${grandTotalPeople}</td>
+            </tr>
+        `;
+    }
+    document.getElementById("statTableBody").innerHTML = html;
+}
+updateStats();
+
+function clearProject() {
+    if (!confirm("Czy chcesz usunąć wszystkie punkty i zresetować projekt? Dane zostaną utracone.")) return;
+    points.forEach(p => map.removeLayer(p.marker));
+    points = [];
+
+    Object.keys(CONFIG_ROUTES).forEach(key => {
+        CONFIG_ROUTES[key].layer.clearLayers();
+        routeLatLngs[key] = [];
+        const el = document.getElementById("gpxFile" + key);
+        if (el) el.value = "";
+    });
+
+    document.getElementById("searchPointInput").value = "";
+    if (isDrawingRoute) toggleDrawRouteMode();
+    initFilters();
+    refreshList();
+    updateStats();
+}
+
+function exportJSON() {
+    const exportData = {
+        projectName: projectName,
+        generatedAt: new Date().toISOString(),
+        drawnRoutes: routeLatLngs,
+        points: points.map(p => ({
+            typ: p.typ,
+            numer: p.numer,
+            sektor: p.sektor,
+            liczba_osob: p.liczba_osob,
+            telefon: p.telefon,
+            uwagi: p.uwagi,
+            lat: p.lat,
+            lng: p.lng
+        }))
+    };
+
+    const jsonString = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.href = jsonString;
+    downloadAnchor.download = `${projectName.toLowerCase().replace(/\s+/g, '_')}_projekt.json`;
+    downloadAnchor.click();
+}
+
+function importJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+
+            points.forEach(p => map.removeLayer(p.marker));
+            points = [];
+
+            if (data.projectName) {
+                projectName = data.projectName;
+                document.getElementById("projectNameInput").value = projectName;
+            }
+
+            if (data.drawnRoutes) {
+                // łączymy z domyślną strukturą, żeby starsze pliki (bez 5K/10K) nie zepsuły rysowania
+                Object.keys(CONFIG_ROUTES).forEach(key => {
+                    routeLatLngs[key] = Array.isArray(data.drawnRoutes[key]) ? data.drawnRoutes[key] : [];
+                    updateRouteLayer(key);
+                });
+            }
+
+            const pointsArray = data.points || (Array.isArray(data) ? data : []);
+
+            pointsArray.forEach(p => {
+                const currentType = normalizeType(p.typ);
+
+                if (!CONFIG_TYPES[currentType]) return;
+
+                const id = generateUUID();
+                createMarkerAndAdd(
+                    id,
+                    currentType,
+                    p.numer || "",
+                    p.sektor || "",
+                    parseInt(p.liczba_osob, 10) || 0,
+                    p.telefon || "",
+                    p.uwagi || "",
+                    p.lat,
+                    p.lng
+                );
+            });
+
+            initFilters();
+            refreshList();
+            updateStats();
+
+            if (points.length > 0) {
+                const group = new L.featureGroup(points.map(p => p.marker));
+                map.fitBounds(group.getBounds());
+            }
+            alert("Projekt JSON został zaimportowany pomyślnie!");
+        } catch (err) {
+            alert("Błąd podczas odczytu pliku JSON.");
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = "";
+}
+
+function exportExcel() {
+    if (points.length === 0) {
+        alert("Brak danych do wyeksportowania do pliku Excel!");
+        return;
+    }
+
+    const rows = points.map((p, idx) => ({
+        "Lp.": idx + 1,
+        "Typ punktu": p.typ,
+        "Numer identyfikacyjny": p.numer,
+        "Sektor / Odcinek": p.sektor,
+        "Obsada (Liczba osób)": p.liczba_osob,
+        "Telefon kontaktowy": p.telefon,
+        "Uwagi i opis lokalizacji": p.uwagi,
+        "Szerokość geogr. (Lat)": p.lat,
+        "Długość geogr. (Lng)": p.lng
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Zabezpieczenie trasy");
+
+    worksheet["!cols"] = [
+        { wch: 5 },  { wch: 24 }, { wch: 15 }, { wch: 15 },
+        { wch: 10 }, { wch: 15 }, { wch: 45 }, { wch: 12 }, { wch: 12 }
+    ];
+
+    XLSX.writeFile(workbook, `${projectName.toLowerCase().replace(/\s+/g, '_')}_raport.xlsx`);
+}
+
+function importExcel(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const rawRows = XLSX.utils.sheet_to_json(worksheet);
+
+            if (rawRows.length === 0) {
+                alert("Wybrany plik Excel jest pusty.");
+                return;
+            }
+
+            points.forEach(p => map.removeLayer(p.marker));
+            points = [];
+
+            let importedCount = 0;
+
+            rawRows.forEach(row => {
+                let typ = normalizeType(row["Typ punktu"]);
+                const numer = row["Numer identyfikacyjny"] ? String(row["Numer identyfikacyjny"]) : "";
+                const sektor = row["Sektor / Odcinek"] ? String(row["Sektor / Odcinek"]) : "";
+                const liczba_osob = parseInt(row["Obsada (Liczba osób)"], 10) || 0;
+                const telefon = row["Telefon kontaktowy"] ? String(row["Telefon kontaktowy"]) : "";
+                const uwagi = row["Uwagi i opis lokalizacji"] ? String(row["Uwagi i opis lokalizacji"]) : "";
+                const lat = parseFloat(row["Szerokość geogr. (Lat)"]);
+                const lng = parseFloat(row["Długość geogr. (Lng)"]);
+
+                if (typ && CONFIG_TYPES[typ] && !isNaN(lat) && !isNaN(lng)) {
+                    const id = generateUUID();
+                    createMarkerAndAdd(id, typ, numer, sektor, liczba_osob, telefon, uwagi, lat, lng);
+                    importedCount++;
+                }
+            });
+
+            initFilters();
+            refreshList();
+            updateStats();
+
+            if (points.length > 0) {
+                const group = new L.featureGroup(points.map(p => p.marker));
+                map.fitBounds(group.getBounds());
+                alert(`Pomyślnie zaimportowano ${importedCount} punktów z pliku Excel!`);
+            } else {
+                alert("Nie udało się zaimportować żadnego punktu. Sprawdź format kolumn.");
+            }
+        } catch (err) {
+            alert("Błąd podczas odczytu pliku Excel.");
+            console.error(err);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = "";
+}
+</script>
+</body>
+</html>
